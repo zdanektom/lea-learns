@@ -1,7 +1,7 @@
-/* Lea Learns 1.0.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.0.1 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -829,6 +829,30 @@ function runChoice({ stage, choices, render, isRight, onRight, onMiss, cls = '' 
   return wrap;
 }
 
+
+/* Visible language switch on the home and start screens. Same setting as the parent corner. */
+function langBar() {
+  const labels = { pl: 'Polski', en: 'English', ru: 'Русский' };
+  const aria = { pl: 'Język', en: 'Language', ru: 'Язык' };
+  const el = h(`<div class="lang-bar" role="group" aria-label="${aria[lang()] || 'Language'}">${
+    Object.entries(LANGS).map(([k, x]) =>
+      `<button type="button" class="lang-btn${k === lang() ? ' on' : ''}" data-lang="${k}" lang="${k}" aria-pressed="${k === lang()}">${labels[k]}</button>`
+    ).join('')
+  }</div>`);
+  $$('.lang-btn', el).forEach((b) => onTap(b, () => {
+    const next = b.dataset.lang;
+    if (next === lang()) return;
+    Audio.unlock();
+    Store.set('lang', next);
+    document.documentElement.lang = next;
+    const screen = App.screen || 'home';
+    const params = App.params || {};
+    // Re-mount so every label and the guide’s speech switch at once. Skip the hello animation.
+    go(screen, screen === 'home' ? { ...params, hello: false } : params);
+  }, { sound: 'open' }));
+  return el;
+}
+
 /* Hidden parent corner: hold for 3 seconds. */
 function parentCorner() {
   const c = h(`<div class="parent-corner" aria-label="Parents: hold for 3 seconds" role="button" tabindex="-1"><svg viewBox="0 0 36 36"><circle class="pc-track" cx="18" cy="18" r="14"/><circle class="pc-fill" cx="18" cy="18" r="14"/></svg></div>`);
@@ -916,7 +940,7 @@ const lolly = (cls, inner, label, swirl) => `<button class="lolly ${cls}" aria-l
 SCREENS.gate = () => {
   const cur = Store.settings.player;
   const el = h(`<section class="world gate">
-    <header class="world-top"><h1 class="logo small"><span class="l1">Lea</span> <span class="l2">Learns</span></h1></header>
+    <header class="world-top"><h1 class="logo small"><span class="l1">Lea</span> <span class="l2">Learns</span></h1><div class="world-top-right"></div></header>
     <div class="gate-ask bubble">${T('whosPlaying')}</div>
     <div class="pickers">${Object.keys(NAMES).map((who, i) => `
       <button class="picker ${who === cur ? 'last' : ''}" data-who="${who}" style="--i:${i}" aria-label="${playerName(who)}">
@@ -926,6 +950,7 @@ SCREENS.gate = () => {
   </section>`);
   el.prepend(worldLayer());
   el.appendChild(parentCorner());
+  $('.world-top-right', el).appendChild(langBar());
   $$('.picker', el).forEach((b) => onTap(b, () => {
     Audio.unlock();
     Audio.sfx('open');
@@ -944,7 +969,7 @@ SCREENS.home = ({ hello } = {}) => {
   const el = h(`<section class="world home">
     <header class="world-top">
       <h1 class="logo small"><span class="l1">Lea</span> <span class="l2">Learns</span></h1>
-      <div class="home-score"><div class="apples-chip">${art('apple')}<b>${d.apples}</b></div><div class="stars-chip">${ICON.star}<b>${d.stars}</b></div></div>
+      <div class="world-top-right"><div class="home-score"><div class="apples-chip">${art('apple')}<b>${d.apples}</b></div><div class="stars-chip">${ICON.star}<b>${d.stars}</b></div></div></div>
     </header>
     <button class="door" data-world="door" aria-label="${T('words')}"><span class="door-glow"></span></button>
     <div class="front">
@@ -960,6 +985,7 @@ SCREENS.home = ({ hello } = {}) => {
   </section>`);
   el.prepend(worldLayer());
   el.appendChild(parentCorner());
+  $('.world-top-right', el).prepend(langBar());
   const talk = (text, speech) => {
     const img = $('.hero-lea', el); const b = $('.hero-bubble', el);
     img.classList.remove('hop'); void img.offsetWidth; img.classList.add('hop');

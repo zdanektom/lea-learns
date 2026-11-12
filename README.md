@@ -35,7 +35,7 @@ cd dist && python3 -m http.server 8080   # then open http://localhost:8080
 
 **Hold the faint circle in the top-right corner of the start or home screen for 3 seconds.** It has:
 
-* the interface language (**Polski / English / Русский**; Polish is the default),
+* the interface language (**Polski / English / Русский**; Polish is the default) — this can also be changed with the **Polski / English / Русский** buttons on the start and home screens,
 * the counting range (1–20 / 1–30),
 * sound effects and speech on/off,
 * the voices this device has,

@@ -46,7 +46,17 @@ svg.art { width: 100%; height: 100%; display: block; overflow: visible; }
 .sparkles i { position: absolute; left: var(--x); top: var(--y); width: 10px; height: 10px; background: #fff; border-radius: 50%; box-shadow: 0 0 12px 4px rgba(255, 255, 255, .8); animation: twinkle 3s var(--d) infinite ease-in-out; opacity: 0; }
 @keyframes twinkle { 50% { opacity: .9; transform: scale(1.3); } }
 .world-top { position: absolute; top: calc(var(--sat) + 12px); left: calc(var(--sal) + 16px); right: calc(var(--sar) + 76px); display: flex; align-items: center; justify-content: space-between; gap: 12px; z-index: 3; }
+.world-top-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 .home-score { display: flex; gap: 10px; }
+.lang-bar { display: flex; background: #fff; border-radius: 999px; box-shadow: var(--shadow); overflow: hidden; flex: none; }
+.lang-btn { min-height: 52px; min-width: 72px; padding: 6px 16px; font-weight: 700; font-size: clamp(16px, 2.6vmin, 22px); color: #6d4c41; white-space: nowrap; }
+.lang-btn + .lang-btn { border-left: 1px solid #f0e4d8; }
+.lang-btn.on { background: var(--purple); color: #fff; }
+.lang-btn.on + .lang-btn, .lang-btn + .lang-btn.on { border-left-color: transparent; }
+@media (max-width: 560px) {
+  .lang-btn { min-width: 52px; min-height: 48px; padding: 6px 10px; font-size: 15px; }
+  .world-top { right: calc(var(--sar) + 70px); gap: 8px; }
+}
 
 .gate-ask { position: absolute; top: calc(var(--sat) + 16vh); left: 50%; transform: translateX(-50%); z-index: 3; font-size: clamp(24px, 4.4vmin, 40px); white-space: nowrap; }
 .pickers { position: absolute; left: 0; right: 0; bottom: calc(var(--sab) + 4vh); display: flex; justify-content: center; align-items: flex-end; gap: clamp(16px, 7vw, 120px); z-index: 2; padding: 0 var(--sar) 0 var(--sal); }

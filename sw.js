@@ -1,5 +1,5 @@
 /* Lea Learns service worker: offline-first. VERSION and ASSETS are filled in by build.mjs. */
-const VERSION = 'lea-learns-1.0.0-fee7761e';
+const VERSION = 'lea-learns-1.0.1-753791fe';
 const ASSETS = [
  "./",
  "./app.js",
