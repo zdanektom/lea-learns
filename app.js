@@ -1,7 +1,7 @@
-/* Lea Learns 1.0.1 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.0.2 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.0.2';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -564,18 +564,36 @@ const ICON = {
 
 
 /* ===== src/30-audio.js ===== */
-/* Speech (speechSynthesis, en-GB preferred) and generated Web Audio sound effects. No audio files. */
+/* Speech (speechSynthesis) and generated Web Audio sound effects. No audio files.
+   Always prefer a pleasant girl's voice: named female voices first (Samantha, Serena, Zosia, Milena…),
+   never a male voice such as Daniel or Marek when a female one is available. */
 const Audio = (() => {
   let ctx = null, master = null;
   const synth = window.speechSynthesis;
   const voices = {}; // 'en' | 'pl' | 'ru' -> SpeechSynthesisVoice | null
-  const PREFERRED = {
-    en: [/serena/i, /kate/i, /martha/i, /stephanie/i, /google uk english female/i, /libby/i, /sonia/i, /hazel/i, /female/i, /daniel/i],
-    pl: [/zosia/i, /ewa/i, /paulina/i, /agnieszka/i, /google polski/i, /zofia/i, /marek/i],
-    ru: [/milena/i, /katya/i, /google русский/i, /svetlana/i, /irina/i, /dariya/i, /yuri/i],
-  };
-  const NOVELTY = /compact|eloquence|novelty|whisper|bad news|bells|bubbles|cellos|organ|zarvox|trinoids|boing|jester|superstar|wobble|grandpa|grandma|albert|bahh|reed|rocko|sandy|shelley|flo|eddy/i;
+  /* Named female voices on iOS, macOS, Android and Windows. Word boundaries avoid accidental matches. */
+  const FEMALE = /\b(serena|kate|martha|stephanie|libby|sonia|hazel|samantha|susan|allison|alice|ava|zoe|zoey|nicky|nicole|joelle|kathy|katie|vicki|victoria|karen|moira|tessa|fiona|zira|aria|jenny|jenna|anna|ana|sara|sarah|emma|emily|olivia|amy|linda|lisa|lucy|mary|heather|jill|josie|zosia|zofia|ewa|eva|paulina|agnieszka|milena|katya|katia|svetlana|irina|dariya|daria|elena|katerina|ekaterina|oksana|female|woman|girl|skye|kelly|pauline|iwona|siri)\b|google uk english female|google us english|google polski|google русский/i;
+  const MALE = /\b(daniel|david|dave|fred|alex|tom|thomas|oliver|arthur|aaron|gordon|george|james|nathan|rishi|ralph|bruce|albert|eddy|reed|rocko|grandpa|marek|adam|yuri|yuriy|dmitri|dmitry|male|man|boy|guy|mark|ryan|christopher|ivan|sergey|pavel)\b|google uk english male/i;
+  const NOVELTY = /compact|eloquence|novelty|whisper|bad news|bells|bubbles|cellos|organ|zarvox|trinoids|boing|jester|superstar|wobble|grandpa|grandma|albert|bahh|reed|rocko|sandy|shelley|flo|eddy|princess|junior|bahh|pipes|good news|cellos/i;
   let listLoaded = false;
+  function scoreVoice(v, L) {
+    const name = v.name || '';
+    const loc = (v.lang || '').toLowerCase().replace('_', '-');
+    if (NOVELTY.test(name)) return -200;
+    let s = 0;
+    const girl = FEMALE.test(name);
+    const boy = MALE.test(name);
+    if (girl && !boy) s += 80;
+    else if (boy) s -= 60;
+    if (/enhanced|premium|neural|natural|wavenet|studio/i.test(name)) s += 12;
+    if (v.localService) s += 8;
+    if (L === 'en') {
+      if (girl && /gb|en-uk/.test(loc)) s += 18;      // Serena, Kate — British and female
+      else if (girl) s += 14;                          // Samantha (US) beats Daniel (GB)
+      else if (/gb/.test(loc) && !boy) s += 4;
+    }
+    return s;
+  }
   function pickVoices() {
     if (!synth) return;
     const vs = synth.getVoices();
@@ -583,11 +601,9 @@ const Audio = (() => {
     listLoaded = true;
     for (const L of ['en', 'pl', 'ru']) {
       const all = vs.filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith(L));
-      const pool = L === 'en' ? (all.filter((v) => /gb/i.test(v.lang)).length ? all.filter((v) => /gb/i.test(v.lang)) : all) : all;
-      const clean = pool.filter((v) => !NOVELTY.test(v.name));
-      let best = null;
-      for (const re of PREFERRED[L]) { best = clean.find((v) => re.test(v.name)); if (best) break; }
-      voices[L] = best || clean.find((v) => v.localService) || clean[0] || pool[0] || null;
+      if (!all.length) { voices[L] = null; continue; }
+      const ranked = all.slice().sort((a, b) => scoreVoice(b, L) - scoreVoice(a, L) || a.name.localeCompare(b.name));
+      voices[L] = ranked[0] || null;
     }
   }
   if (synth) { pickVoices(); synth.addEventListener?.('voiceschanged', pickVoices); }
@@ -632,8 +648,9 @@ const Audio = (() => {
         const v = voices[p.L];
         if (v) u.voice = v;
         u.lang = v ? v.lang : LOCALE[p.L];
-        u.rate = opts.rate || (p.L === 'en' ? 0.8 : 0.9);
-        u.pitch = opts.pitch || 1.12;
+        // A little higher and unhurried, so it sounds like a pleasant young girl rather than a default adult voice.
+        u.rate = opts.rate || (p.L === 'en' ? 0.86 : 0.92);
+        u.pitch = opts.pitch || 1.32;
         let done = false;
         const fin = () => { if (done) return; done = true; setTimeout(next, 160); };
         u.onend = fin; u.onerror = fin;

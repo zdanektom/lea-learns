@@ -47,7 +47,7 @@ The interface language changes the menus and the guide’s hints. **The vocabula
 
 ## Speech and sound
 
-* `speechSynthesis`: an English voice (en-GB preferred) for target words, letters, phonics and number words. A pl-PL or ru-RU voice speaks the guide phrases. If the device has no voice for the interface language, those phrases are shown in the bubble but not spoken, and the English stays spoken.
+* `speechSynthesis`: a pleasant girl's voice. Female voices are preferred (Samantha, Serena, Zosia, Milena and similar); a male voice such as Daniel is used only if no female voice is installed. English target words, letters, phonics and number words are spoken in English; guide phrases follow the interface language. If the device has no voice for the interface language, those phrases are shown in the bubble but not spoken, and the English stays spoken. Pitch is slightly raised so the voice sounds young and warm.
 * All sound effects (chimes, pops, Bacon’s “woof”) are generated with the Web Audio API. There are no audio files.
 * **iOS notes:**
   * Safari only allows audio and speech after a tap, so the first tap on Lea or Ines unlocks both.
