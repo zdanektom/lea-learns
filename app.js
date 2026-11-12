@@ -1,7 +1,7 @@
-/* Lea Learns 1.0.2 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.1.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.0.2';
+const APP_VERSION = '1.1.0';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -617,50 +617,123 @@ const Audio = (() => {
     return ctx;
   }
 
+  /* Pre-recorded cartoon-girl clips (assets/voice). Fallback: device speechSynthesis. */
+  let clipManifest = null, clipLoading = null;
+  const clipPlayer = (typeof window !== 'undefined' && window.Audio) ? new window.Audio() : null;
+  if (clipPlayer) { clipPlayer.setAttribute('playsinline', ''); clipPlayer.preload = 'auto'; }
+  function clipKey(L, text) { return L + ':' + String(text).trim(); }
+  function loadClips() {
+    if (clipManifest) return Promise.resolve(clipManifest);
+    if (clipLoading) return clipLoading;
+    clipLoading = fetch('assets/voice/manifest.json').then((r) => r.ok ? r.json() : {}).then((m) => { clipManifest = m || {}; return clipManifest; }).catch(() => { clipManifest = {}; return clipManifest; });
+    return clipLoading;
+  }
+  loadClips();
+  function clipsFor(list) {
+    if (!clipManifest) return null;
+    const urls = list.map((p) => clipManifest[clipKey(p.L, p.t)]);
+    return urls.every(Boolean) ? urls : null;
+  }
+
   /* Must be called from inside a tap handler (iOS Safari rule). */
   let unlocked = false;
   function unlock() {
     const c = ensureCtx();
     if (c) { const b = c.createBuffer(1, 1, 22050); const s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(0); }
     if (synth && !unlocked) { try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); } catch (e) {} }
+    if (clipPlayer && !unlocked) {
+      try {
+        clipPlayer.muted = true;
+        clipPlayer.src = 'assets/voice/silence.mp3';
+        const p = clipPlayer.play();
+        if (p && p.then) p.then(() => { clipPlayer.pause(); clipPlayer.muted = false; }).catch(() => { clipPlayer.muted = false; });
+        else clipPlayer.muted = false;
+      } catch (e) { clipPlayer.muted = false; }
+    }
     unlocked = true;
     pickVoices();
+    loadClips();
   }
 
   let queueToken = 0;
   /* say(['Pokaż', EN('apple')]): plain strings are guide speech in the interface language,
      EN(...) parts are English target vocabulary, always in an English voice. */
-  function say(parts, opts = {}) {
-    if (!synth || !Store.settings.voice) return Promise.resolve();
+  function partsList(parts) {
     const ui = lang();
-    const list = (Array.isArray(parts) ? parts : [parts]).map((p) => (typeof p === 'string' ? { t: p, L: ui } : { t: p.en, L: 'en' }))
-      // If the device has no voice for the interface language, skip those phrases (the bubble still shows them).
-      .filter((p) => p.t && (!listLoaded || voices[p.L] || p.L === 'en'));
+    return (Array.isArray(parts) ? parts : [parts])
+      .flat()
+      .map((p) => (typeof p === 'string' ? { t: p, L: ui } : { t: p.en, L: 'en' }))
+      .filter((p) => p.t);
+  }
+  function playClips(urls, opts = {}) {
     const token = ++queueToken;
-    synth.cancel();
-    if (synth.paused) synth.resume();
+    if (synth) { synth.cancel(); }
+    if (!clipPlayer) return Promise.resolve();
     return new Promise((resolve) => {
       let i = 0;
       const next = () => {
-        if (token !== queueToken || i >= list.length) return resolve();
-        const p = list[i++];
-        const u = new SpeechSynthesisUtterance(p.t);
-        const v = voices[p.L];
-        if (v) u.voice = v;
-        u.lang = v ? v.lang : LOCALE[p.L];
-        // A little higher and unhurried, so it sounds like a pleasant young girl rather than a default adult voice.
-        u.rate = opts.rate || (p.L === 'en' ? 0.86 : 0.92);
-        u.pitch = opts.pitch || 1.32;
+        if (token !== queueToken || i >= urls.length) return resolve();
+        const url = urls[i++];
         let done = false;
-        const fin = () => { if (done) return; done = true; setTimeout(next, 160); };
-        u.onend = fin; u.onerror = fin;
-        setTimeout(fin, 1000 + p.t.length * 150);
-        synth.speak(u);
+        const fin = () => {
+          if (done) return; done = true;
+          clipPlayer.onended = null; clipPlayer.onerror = null;
+          setTimeout(next, 80);
+        };
+        clipPlayer.onended = fin;
+        clipPlayer.onerror = fin;
+        try {
+          clipPlayer.muted = false;
+          clipPlayer.playbackRate = opts.clipRate || 1;
+          clipPlayer.src = url;
+          const p = clipPlayer.play();
+          if (p && p.catch) p.catch(fin);
+        } catch (e) { fin(); }
+        setTimeout(fin, 7000);
       };
-      setTimeout(next, 60);
+      next();
     });
   }
-  function hush() { queueToken++; if (synth) synth.cancel(); }
+  function say(parts, opts = {}) {
+    if (!Store.settings.voice) return Promise.resolve();
+    const list = partsList(parts);
+    const go = () => {
+      const urls = clipsFor(list);
+      if (urls && urls.length) return playClips(urls, opts);
+      // Fallback: device speechSynthesis, still preferring a girl-like pitch.
+      if (!synth) return Promise.resolve();
+      const spoken = list.filter((p) => !listLoaded || voices[p.L] || p.L === 'en');
+      const token = ++queueToken;
+      synth.cancel();
+      if (synth.paused) synth.resume();
+      return new Promise((resolve) => {
+        let i = 0;
+        const next = () => {
+          if (token !== queueToken || i >= spoken.length) return resolve();
+          const p = spoken[i++];
+          const u = new SpeechSynthesisUtterance(p.t);
+          const v = voices[p.L];
+          if (v) u.voice = v;
+          u.lang = v ? v.lang : LOCALE[p.L];
+          u.rate = opts.rate || (p.L === 'en' ? 0.95 : 1.0);
+          u.pitch = opts.pitch || 1.45;
+          let done = false;
+          const fin = () => { if (done) return; done = true; setTimeout(next, 120); };
+          u.onend = fin; u.onerror = fin;
+          setTimeout(fin, 1000 + p.t.length * 150);
+          synth.speak(u);
+        };
+        setTimeout(next, 40);
+      });
+    };
+    if (clipManifest) return go();
+    return loadClips().then(go);
+  }
+  function hush() {
+    queueToken++;
+    if (synth) synth.cancel();
+    if (clipPlayer) { try { clipPlayer.pause(); clipPlayer.removeAttribute('src'); clipPlayer.load(); } catch (e) {} }
+  }
 
   function tone(freq, start, dur, { type = 'sine', vol = 0.3, glide = 0, attack = 0.01 } = {}) {
     const c = ctx; if (!c) return;
@@ -1570,13 +1643,13 @@ SCREENS.sums = () => {
       scene.innerHTML = `<div class="grp g1"></div><b class="op">+</b><div class="grp g2"></div><b class="op">=</b><div class="ans-box">?</div>`;
       $('.g1', scene).append(objectPile(t, s.a, { countable: false }), h(`<span class="grp-n">${s.a}</span>`));
       $('.g2', scene).append(objectPile(t, s.b, { countable: false }), h(`<span class="grp-n">${s.b}</span>`));
-      ask = [EN(`${NUMBER_WORDS[s.a]} plus ${NUMBER_WORDS[s.b]}`), T('altogether')];
-      done = EN(`${NUMBER_WORDS[s.a]} plus ${NUMBER_WORDS[s.b]} makes ${NUMBER_WORDS[s.ans]}!`);
+      ask = [EN(NUMBER_WORDS[s.a]), EN('plus'), EN(NUMBER_WORDS[s.b]), T('altogether')];
+      done = [EN(NUMBER_WORDS[s.a]), EN('plus'), EN(NUMBER_WORDS[s.b]), EN('makes'), EN(NUMBER_WORDS[s.ans] + '!')];
     } else {
       scene.innerHTML = `<div class="grp g1 wide"></div><b class="op">−</b><span class="grp-n take">${s.b}</span><b class="op">=</b><div class="ans-box">?</div>`;
       $('.g1', scene).append(objectPile(t, s.a, { countable: false, away: s.b }), h(`<span class="grp-n">${s.a}</span>`));
-      ask = [EN(`${NUMBER_WORDS[s.a]} take away ${NUMBER_WORDS[s.b]}`), T('left')];
-      done = EN(`${NUMBER_WORDS[s.a]} take away ${NUMBER_WORDS[s.b]} is ${NUMBER_WORDS[s.ans]}!`);
+      ask = [EN(NUMBER_WORDS[s.a]), EN('take away'), EN(NUMBER_WORDS[s.b]), T('left')];
+      done = [EN(NUMBER_WORDS[s.a]), EN('take away'), EN(NUMBER_WORDS[s.b]), EN('is'), EN(NUMBER_WORDS[s.ans] + '!')];
       later(() => $$('.obj.away', scene).forEach((o, i) => setTimeout(() => { o.classList.add('gone'); Audio.sfx('whoosh'); }, i * 250)), 1400);
     }
     $('.prompt-word', prompt).textContent = s.op === '+' ? T('altogether') : T('left');
@@ -1592,7 +1665,7 @@ SCREENS.sums = () => {
         const praise = tPick('praise');
         celebrate({ text: String(s.ans) });
         setGuide(pick(['jump', 'cheer']), praise);
-        Audio.say([praise, done]);
+        Audio.say([praise, ...done]);
         q++; later(() => { App.busy = false; next(); }, 3200 + Dog.extra());
       },
       onMiss: () => { const enc = tPick('encourage'); setGuide('wave', enc, 'wiggle'); Audio.say([enc, ...ask]); },
@@ -1606,9 +1679,9 @@ SCREENS.sums = () => {
 /* ===== src/85-parent.js ===== */
 /* Lea Learns — parent corner (hold the top-right corner for 3 seconds). Shown in the chosen interface language. */
 const PT = {
-  en: { title: 'For parents', language: 'Language', langNote: 'Menus and the guide’s hints use this language. The words being learnt are always English.', sound: 'Sound effects', voice: 'Speech', range: 'Numbers', rangeNote: 'Counting range', reset: 'Reset progress', resetSure: 'Tap again to reset', resetDone: 'Progress reset', test: 'Test voices', voices: 'Voices on this device', none: 'not found', noVoice: (l) => `No ${l} voice found: guide phrases are shown but not spoken. Add one in Settings › Accessibility › Spoken Content › Voices.`, progress: (d) => `${d.apples} apples · ${d.stars} stars · ${Object.keys(d.seenWords).length} words · ${Object.keys(d.seenLetters).length}/26 letters`, privacy: 'No accounts, ads or tracking. Progress is saved only on this device.', ios: 'iPad: if there is no sound, check the silent switch and volume, then go back to the start screen and tap Lea or Ines.', on: 'On', off: 'Off', close: 'Close', changePlayer: 'Change player' },
-  pl: { title: 'Dla rodzica', language: 'Język', langNote: 'Menu i podpowiedzi są w tym języku. Słówka do nauki są zawsze po angielsku.', sound: 'Efekty dźwiękowe', voice: 'Mowa', range: 'Liczby', rangeNote: 'Zakres liczenia', reset: 'Wyzeruj postępy', resetSure: 'Dotknij ponownie, aby wyzerować', resetDone: 'Postępy wyzerowane', test: 'Sprawdź głosy', voices: 'Głosy na tym urządzeniu', none: 'brak', noVoice: (l) => `Brak głosu (${l}): podpowiedzi są wyświetlane, ale nie czytane. Dodaj głos w Ustawienia › Dostępność › Zawartość mówiona › Głosy.`, progress: (d) => `${d.apples} jabłek · ${d.stars} gwiazdek · ${Object.keys(d.seenWords).length} słów · ${Object.keys(d.seenLetters).length}/26 liter`, privacy: 'Bez kont, reklam i śledzenia. Postępy zapisują się tylko na tym urządzeniu.', ios: 'iPad: jeśli nie ma dźwięku, sprawdź przełącznik wyciszenia i głośność, a potem wróć do ekranu startowego i dotknij Lei lub Ines.', on: 'Wł.', off: 'Wył.', close: 'Zamknij', changePlayer: 'Zmień gracza' },
-  ru: { title: 'Для родителей', language: 'Язык', langNote: 'Меню и подсказки на этом языке. Слова для изучения всегда на английском.', sound: 'Звуковые эффекты', voice: 'Речь', range: 'Числа', rangeNote: 'Диапазон счёта', reset: 'Сбросить прогресс', resetSure: 'Нажмите ещё раз для сброса', resetDone: 'Прогресс сброшен', test: 'Проверить голоса', voices: 'Голоса на устройстве', none: 'нет', noVoice: (l) => `Нет голоса (${l}): подсказки показываются, но не озвучиваются. Добавьте голос: Настройки › Универсальный доступ › Устный контент › Голоса.`, progress: (d) => `${d.apples} яблок · ${d.stars} звёзд · ${Object.keys(d.seenWords).length} слов · ${Object.keys(d.seenLetters).length}/26 букв`, privacy: 'Без аккаунтов, рекламы и слежки. Прогресс хранится только на этом устройстве.', ios: 'iPad: если нет звука, проверьте переключатель беззвучного режима и громкость, затем вернитесь на стартовый экран и нажмите на Лею или Инес.', on: 'Вкл.', off: 'Выкл.', close: 'Закрыть', changePlayer: 'Сменить игрока' },
+  en: { title: 'For parents', language: 'Language', langNote: 'Menus and the guide’s hints use this language. The words being learnt are always English.', sound: 'Sound effects', voice: 'Speech', range: 'Numbers', rangeNote: 'Counting range', reset: 'Reset progress', resetSure: 'Tap again to reset', resetDone: 'Progress reset', test: 'Listen', voices: 'Voice', voiceStyle: 'A bright, playful little-girl voice, like in a children’s cartoon.', none: 'not found', noVoice: (l) => `No ${l} voice found: guide phrases are shown but not spoken. Add one in Settings › Accessibility › Spoken Content › Voices.`, progress: (d) => `${d.apples} apples · ${d.stars} stars · ${Object.keys(d.seenWords).length} words · ${Object.keys(d.seenLetters).length}/26 letters`, privacy: 'No accounts, ads or tracking. Progress is saved only on this device.', ios: 'iPad: if there is no sound, check the silent switch and volume, then go back to the start screen and tap Lea or Ines.', on: 'On', off: 'Off', close: 'Close', changePlayer: 'Change player' },
+  pl: { title: 'Dla rodzica', language: 'Język', langNote: 'Menu i podpowiedzi są w tym języku. Słówka do nauki są zawsze po angielsku.', sound: 'Efekty dźwiękowe', voice: 'Mowa', range: 'Liczby', rangeNote: 'Zakres liczenia', reset: 'Wyzeruj postępy', resetSure: 'Dotknij ponownie, aby wyzerować', resetDone: 'Postępy wyzerowane', test: 'Posłuchaj', voices: 'Głos', voiceStyle: 'Jasny, wesoły głos dziewczynki, jak w bajce.', none: 'brak', noVoice: (l) => `Brak głosu (${l}): podpowiedzi są wyświetlane, ale nie czytane. Dodaj głos w Ustawienia › Dostępność › Zawartość mówiona › Głosy.`, progress: (d) => `${d.apples} jabłek · ${d.stars} gwiazdek · ${Object.keys(d.seenWords).length} słów · ${Object.keys(d.seenLetters).length}/26 liter`, privacy: 'Bez kont, reklam i śledzenia. Postępy zapisują się tylko na tym urządzeniu.', ios: 'iPad: jeśli nie ma dźwięku, sprawdź przełącznik wyciszenia i głośność, a potem wróć do ekranu startowego i dotknij Lei lub Ines.', on: 'Wł.', off: 'Wył.', close: 'Zamknij', changePlayer: 'Zmień gracza' },
+  ru: { title: 'Для родителей', language: 'Язык', langNote: 'Меню и подсказки на этом языке. Слова для изучения всегда на английском.', sound: 'Звуковые эффекты', voice: 'Речь', range: 'Числа', rangeNote: 'Диапазон счёта', reset: 'Сбросить прогресс', resetSure: 'Нажмите ещё раз для сброса', resetDone: 'Прогресс сброшен', test: 'Послушать', voices: 'Голос', voiceStyle: 'Яркий, весёлый голос девочки, как в мультфильме.', none: 'нет', noVoice: (l) => `Нет голоса (${l}): подсказки показываются, но не озвучиваются. Добавьте голос: Настройки › Универсальный доступ › Устный контент › Голоса.`, progress: (d) => `${d.apples} яблок · ${d.stars} звёзд · ${Object.keys(d.seenWords).length} слов · ${Object.keys(d.seenLetters).length}/26 букв`, privacy: 'Без аккаунтов, рекламы и слежки. Прогресс хранится только на этом устройстве.', ios: 'iPad: если нет звука, проверьте переключатель беззвучного режима и громкость, затем вернитесь на стартовый экран и нажмите на Лею или Инес.', on: 'Вкл.', off: 'Выкл.', close: 'Закрыть', changePlayer: 'Сменить игрока' },
 };
 const CREDIT = 'Made for Lea by Tomasz Zdankowski';
 
@@ -1630,7 +1703,7 @@ function openParent() {
       <div class="p-row"><span>${t.sound}</span><button class="toggle ${s.sound ? 'on' : ''}" data-k="sound">${s.sound ? t.on : t.off}</button></div>
       <div class="p-row"><span>${t.voice}</span><button class="toggle ${s.voice ? 'on' : ''}" data-k="voice">${s.voice ? t.on : t.off}</button></div>
       <div class="p-block"><div class="p-label">${t.voices}</div>
-        <p class="p-voices">EN: ${v('en')}<br>PL: ${v('pl')}<br>RU: ${v('ru')}</p>
+        <p class="p-voices">${t.voiceStyle}</p>
         ${missing ? `<p class="p-note warn">${t.noVoice(LANGS[L].label)}</p>` : ''}
         <button class="p-btn p-test">${t.test}</button></div>
       <p class="p-progress">${t.progress(Store.data)}</p>
