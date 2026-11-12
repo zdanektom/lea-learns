@@ -1,0 +1,3 @@
+fredoka.woff2  — Fredoka (Latin subset), Copyright 2016 The Fredoka Project Authors. SIL Open Font License 1.1.
+nunito-cyrillic.woff2 — Nunito (Cyrillic subset), Copyright 2014 The Nunito Project Authors. SIL Open Font License 1.1.
+Licence text: https://openfontlicense.org/open-font-license-official-text/
