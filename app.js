@@ -1,13 +1,13 @@
-/* Lea Learns 1.1.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.2.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
 const Store = (() => {
   const KEY = 'lea-learns:v1';
-  const fresh = () => ({ apples: 0, stars: 0, rounds: 0, seenWords: {}, seenLetters: {}, played: {}, settings: { player: null, sound: true, voice: true, lang: 'pl', range: 20 } });
+  const fresh = () => ({ apples: 0, stars: 0, rounds: 0, seenWords: {}, seenLetters: {}, played: {}, settings: { player: null, sound: true, music: true, voice: true, lang: 'pl', range: 20 } });
   let d;
   try { d = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY) || '{}')); d.settings = Object.assign(fresh().settings, d.settings || {}); } catch (e) { d = fresh(); }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} };
@@ -564,9 +564,8 @@ const ICON = {
 
 
 /* ===== src/30-audio.js ===== */
-/* Speech (speechSynthesis) and generated Web Audio sound effects. No audio files.
-   Always prefer a pleasant girl's voice: named female voices first (Samantha, Serena, Zosia, Milena…),
-   never a male voice such as Daniel or Marek when a female one is available. */
+/* Speech (pre-recorded clips, speechSynthesis fallback), Web Audio sound effects,
+   and a looping original background music bed. Prefer a pleasant girl's voice. */
 const Audio = (() => {
   let ctx = null, master = null;
   const synth = window.speechSynthesis;
@@ -635,6 +634,133 @@ const Audio = (() => {
     return urls.every(Boolean) ? urls : null;
   }
 
+
+  /* Cheerful original music-box loop. Decoded into an AudioBuffer and looped
+     sample-accurately, so the repeat has no MP3 encoder gap. */
+  const MUSIC_URL = 'assets/music/theme.mp3';
+  const MUSIC_SAMPLES = 1568000;
+  const MUSIC_VOL = 0.32;
+  const MUSIC_DUCK = 0.08;
+  const MUSIC_FP = [0.112491,0.107608,0.109745,0.110721,0.107761,0.110660,0.111148,0.104923,0.098453,0.103244,0.104831,0.103854,0.105533,0.098849,0.100558,0.107028,0.106113,0.109775,0.113376,0.111118,0.102634,0.097781,0.102847,0.108158,0.115665,0.123203,0.119419,0.108982,0.094363,0.095798,0.102329,0.094302,0.084323,0.080599,0.069460,0.081210,0.092318,0.080325,0.047029,0.039216,0.042512,0.045900,0.063875,0.085452,0.060793,0.018097,0.001221,-0.008026,-0.027863,-0.041353,-0.021699,0.009644,-0.011200,-0.066652,-0.069430,-0.045198,-0.056215,-0.098239,-0.106021,-0.075900,-0.081179,-0.136662,-0.153691,-0.120090,-0.088626,-0.103427,-0.115482,-0.119999,-0.117557,-0.132756,-0.157872,-0.177892,-0.192083,-0.204596,-0.214911,-0.185583,-0.158574,-0.135929,-0.095676,-0.083834,-0.111301,-0.121830,-0.103336,-0.109073,-0.105228,-0.067110,-0.053896,-0.083651,-0.081057,-0.057314,-0.070986,-0.057405,-0.056185,-0.133457,-0.171484,-0.126316,-0.050722,-0.021271,-0.044435,-0.028352,-0.014039,-0.064455,-0.075991,-0.072573,-0.131199,-0.130039,-0.064821,-0.045137,-0.056642,-0.077212,-0.092898,-0.075350,-0.042634,-0.012909,-0.009613,-0.052217,-0.152196,-0.181036,-0.127415,-0.124119,-0.139225,-0.146886,-0.170110,-0.185369,-0.123417,-0.029420,0.010865,0.002045];
+  let musicBuf = null, musicSrc = null, musicGain = null, musicAb = null, musicLoading = null;
+  let musicPos = 0, musicStartedAt = 0, duckCount = 0, musicWanted = false;
+
+  function prefetchMusic() {
+    fetch(MUSIC_URL).then((r) => r.ok ? r.arrayBuffer() : null).then((ab) => { musicAb = ab; }).catch(() => {});
+  }
+  prefetchMusic();
+
+  function musicTargetVol() {
+    if (!Store.settings.music) return 0;
+    return duckCount > 0 ? MUSIC_DUCK : MUSIC_VOL;
+  }
+  function applyMusicVol(quick) {
+    if (!musicGain || !ctx) return;
+    const g = musicGain.gain, t = ctx.currentTime, v = musicTargetVol();
+    const dur = quick ? 0.05 : (duckCount > 0 ? 0.25 : 0.55);
+    try { g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(v, t + dur); }
+    catch (e) { try { g.value = v; } catch (e2) {} }
+  }
+  function duckMusic(on) {
+    if (on) duckCount += 1;
+    else duckCount = Math.max(0, duckCount - 1);
+    applyMusicVol();
+  }
+  function trimMusic(buf) {
+    if (!buf || !buf.length || !ctx) return buf;
+    const ch0 = buf.getChannelData(0);
+    const fl = MUSIC_FP.length;
+    let fpN = 0; for (let i = 0; i < fl; i++) fpN += MUSIC_FP[i] * MUSIC_FP[i];
+    fpN = Math.sqrt(fpN) + 1e-12;
+    let best = 0, bestS = -1;
+    const limit = Math.min(4000, Math.max(0, ch0.length - fl));
+    for (let off = 0; off <= limit; off++) {
+      let d = 0, n = 0;
+      for (let i = 0; i < fl; i++) { const v = ch0[off + i]; d += MUSIC_FP[i] * v; n += v * v; }
+      const s = d / (fpN * (Math.sqrt(n) + 1e-12));
+      if (s > bestS) { bestS = s; best = off; }
+    }
+    const want = MUSIC_SAMPLES;
+    const n = Math.min(want, buf.length - best);
+    if (n < want * 0.95) return buf;
+    if (best === 0 && n === buf.length) return buf;
+    const out = ctx.createBuffer(buf.numberOfChannels, n, buf.sampleRate);
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) out.getChannelData(ch).set(buf.getChannelData(ch).subarray(best, best + n));
+    return out;
+  }
+  function decodeMusic(c, ab) {
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = (b) => { if (settled) return; settled = true; resolve(b || null); };
+      try {
+        const p = c.decodeAudioData(ab.slice(0), done, () => done(null));
+        if (p && p.then) p.then(done, () => done(null));
+      } catch (e) { done(null); }
+    });
+  }
+  function loadMusic() {
+    if (musicBuf) return Promise.resolve(musicBuf);
+    if (musicLoading) return musicLoading;
+    const c = ensureCtx();
+    if (!c) return Promise.resolve(null);
+    musicLoading = (musicAb ? Promise.resolve(musicAb) : fetch(MUSIC_URL).then((r) => r.ok ? r.arrayBuffer() : null))
+      .then((ab) => { if (ab) musicAb = ab; return ab ? decodeMusic(c, ab) : null; })
+      .then((buf) => { musicBuf = buf ? trimMusic(buf) : null; musicLoading = null; return musicBuf; })
+      .catch(() => { musicLoading = null; return null; });
+    return musicLoading;
+  }
+  function currentMusicPos() {
+    if (!ctx || !musicSrc || !musicBuf) return musicPos;
+    return (musicPos + (ctx.currentTime - musicStartedAt)) % (musicBuf.duration || 1);
+  }
+  function stopMusicSrc() {
+    if (!musicSrc) return;
+    try { musicPos = currentMusicPos(); musicSrc.onended = null; musicSrc.stop(); } catch (e) {}
+    musicSrc = null;
+  }
+  function startMusic() {
+    musicWanted = true;
+    if (!unlocked || !Store.settings.music) return;
+    const c = ensureCtx();
+    if (!c) return;
+    const go = (buf) => {
+      if (!buf || !musicWanted || !Store.settings.music || musicSrc) return;
+      if (!musicGain) {
+        musicGain = c.createGain();
+        musicGain.gain.value = 0;
+        musicGain.connect(master || c.destination);
+      }
+      applyMusicVol(true);
+      const src = c.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      src.loopStart = 0;
+      src.loopEnd = buf.duration;
+      src.connect(musicGain);
+      const pos = ((musicPos % buf.duration) + buf.duration) % buf.duration;
+      try { src.start(0, pos); } catch (e) { try { src.start(0); } catch (e2) {} }
+      musicStartedAt = c.currentTime;
+      musicSrc = src;
+    };
+    if (musicBuf) go(musicBuf);
+    else loadMusic().then(go);
+  }
+  function stopMusic() {
+    musicWanted = false;
+    if (musicGain && ctx) {
+      const g = musicGain.gain, t = ctx.currentTime;
+      try { g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + 0.3); } catch (e) {}
+    }
+    setTimeout(() => { if (!musicWanted) stopMusicSrc(); }, 360);
+  }
+  function setMusic(on) { if (on) startMusic(); else stopMusic(); }
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopMusicSrc();
+      else if (Store.settings.music && unlocked) startMusic();
+    });
+  }
+
   /* Must be called from inside a tap handler (iOS Safari rule). */
   let unlocked = false;
   function unlock() {
@@ -653,6 +779,7 @@ const Audio = (() => {
     unlocked = true;
     pickVoices();
     loadClips();
+    startMusic();
   }
 
   let queueToken = 0;
@@ -696,6 +823,7 @@ const Audio = (() => {
   }
   function say(parts, opts = {}) {
     if (!Store.settings.voice) return Promise.resolve();
+    duckMusic(true);
     const list = partsList(parts);
     const go = () => {
       const urls = clipsFor(list);
@@ -726,11 +854,13 @@ const Audio = (() => {
         setTimeout(next, 40);
       });
     };
-    if (clipManifest) return go();
-    return loadClips().then(go);
+    const p = clipManifest ? go() : loadClips().then(go);
+    return Promise.resolve(p).then((r) => { duckMusic(false); return r; }, () => { duckMusic(false); });
   }
   function hush() {
     queueToken++;
+    duckCount = 0;
+    applyMusicVol();
     if (synth) synth.cancel();
     if (clipPlayer) { try { clipPlayer.pause(); clipPlayer.removeAttribute('src'); clipPlayer.load(); } catch (e) {} }
   }
@@ -762,7 +892,7 @@ const Audio = (() => {
   };
   function sfx(name, arg) { if (!Store.settings.sound) return; if (!ensureCtx()) return; try { SFX[name] && SFX[name](arg); } catch (e) {} }
 
-  return { unlock, say, hush, sfx, voiceFor: (L) => (voices[L] ? `${voices[L].name} (${voices[L].lang})` : ''), get hasSpeech() { return !!synth; }, get listLoaded() { return listLoaded; } };
+  return { unlock, say, hush, sfx, setMusic, voiceFor: (L) => (voices[L] ? `${voices[L].name} (${voices[L].lang})` : ''), get hasSpeech() { return !!synth; }, get listLoaded() { return listLoaded; } };
 })();
 
 
@@ -1679,9 +1809,9 @@ SCREENS.sums = () => {
 /* ===== src/85-parent.js ===== */
 /* Lea Learns — parent corner (hold the top-right corner for 3 seconds). Shown in the chosen interface language. */
 const PT = {
-  en: { title: 'For parents', language: 'Language', langNote: 'Menus and the guide’s hints use this language. The words being learnt are always English.', sound: 'Sound effects', voice: 'Speech', range: 'Numbers', rangeNote: 'Counting range', reset: 'Reset progress', resetSure: 'Tap again to reset', resetDone: 'Progress reset', test: 'Listen', voices: 'Voice', voiceStyle: 'A bright, playful little-girl voice, like in a children’s cartoon.', none: 'not found', noVoice: (l) => `No ${l} voice found: guide phrases are shown but not spoken. Add one in Settings › Accessibility › Spoken Content › Voices.`, progress: (d) => `${d.apples} apples · ${d.stars} stars · ${Object.keys(d.seenWords).length} words · ${Object.keys(d.seenLetters).length}/26 letters`, privacy: 'No accounts, ads or tracking. Progress is saved only on this device.', ios: 'iPad: if there is no sound, check the silent switch and volume, then go back to the start screen and tap Lea or Ines.', on: 'On', off: 'Off', close: 'Close', changePlayer: 'Change player' },
-  pl: { title: 'Dla rodzica', language: 'Język', langNote: 'Menu i podpowiedzi są w tym języku. Słówka do nauki są zawsze po angielsku.', sound: 'Efekty dźwiękowe', voice: 'Mowa', range: 'Liczby', rangeNote: 'Zakres liczenia', reset: 'Wyzeruj postępy', resetSure: 'Dotknij ponownie, aby wyzerować', resetDone: 'Postępy wyzerowane', test: 'Posłuchaj', voices: 'Głos', voiceStyle: 'Jasny, wesoły głos dziewczynki, jak w bajce.', none: 'brak', noVoice: (l) => `Brak głosu (${l}): podpowiedzi są wyświetlane, ale nie czytane. Dodaj głos w Ustawienia › Dostępność › Zawartość mówiona › Głosy.`, progress: (d) => `${d.apples} jabłek · ${d.stars} gwiazdek · ${Object.keys(d.seenWords).length} słów · ${Object.keys(d.seenLetters).length}/26 liter`, privacy: 'Bez kont, reklam i śledzenia. Postępy zapisują się tylko na tym urządzeniu.', ios: 'iPad: jeśli nie ma dźwięku, sprawdź przełącznik wyciszenia i głośność, a potem wróć do ekranu startowego i dotknij Lei lub Ines.', on: 'Wł.', off: 'Wył.', close: 'Zamknij', changePlayer: 'Zmień gracza' },
-  ru: { title: 'Для родителей', language: 'Язык', langNote: 'Меню и подсказки на этом языке. Слова для изучения всегда на английском.', sound: 'Звуковые эффекты', voice: 'Речь', range: 'Числа', rangeNote: 'Диапазон счёта', reset: 'Сбросить прогресс', resetSure: 'Нажмите ещё раз для сброса', resetDone: 'Прогресс сброшен', test: 'Послушать', voices: 'Голос', voiceStyle: 'Яркий, весёлый голос девочки, как в мультфильме.', none: 'нет', noVoice: (l) => `Нет голоса (${l}): подсказки показываются, но не озвучиваются. Добавьте голос: Настройки › Универсальный доступ › Устный контент › Голоса.`, progress: (d) => `${d.apples} яблок · ${d.stars} звёзд · ${Object.keys(d.seenWords).length} слов · ${Object.keys(d.seenLetters).length}/26 букв`, privacy: 'Без аккаунтов, рекламы и слежки. Прогресс хранится только на этом устройстве.', ios: 'iPad: если нет звука, проверьте переключатель беззвучного режима и громкость, затем вернитесь на стартовый экран и нажмите на Лею или Инес.', on: 'Вкл.', off: 'Выкл.', close: 'Закрыть', changePlayer: 'Сменить игрока' },
+  en: { title: 'For parents', language: 'Language', langNote: 'Menus and the guide’s hints use this language. The words being learnt are always English.', sound: 'Sound effects', music: 'Music', voice: 'Speech', range: 'Numbers', rangeNote: 'Counting range', reset: 'Reset progress', resetSure: 'Tap again to reset', resetDone: 'Progress reset', test: 'Listen', voices: 'Voice', voiceStyle: 'A bright, playful little-girl voice, like in a children’s cartoon.', none: 'not found', noVoice: (l) => `No ${l} voice found: guide phrases are shown but not spoken. Add one in Settings › Accessibility › Spoken Content › Voices.`, progress: (d) => `${d.apples} apples · ${d.stars} stars · ${Object.keys(d.seenWords).length} words · ${Object.keys(d.seenLetters).length}/26 letters`, privacy: 'No accounts, ads or tracking. Progress is saved only on this device.', ios: 'iPad: if there is no sound, check the silent switch and volume, then go back to the start screen and tap Lea or Ines.', on: 'On', off: 'Off', close: 'Close', changePlayer: 'Change player' },
+  pl: { title: 'Dla rodzica', language: 'Język', langNote: 'Menu i podpowiedzi są w tym języku. Słówka do nauki są zawsze po angielsku.', sound: 'Efekty dźwiękowe', music: 'Muzyka', voice: 'Mowa', range: 'Liczby', rangeNote: 'Zakres liczenia', reset: 'Wyzeruj postępy', resetSure: 'Dotknij ponownie, aby wyzerować', resetDone: 'Postępy wyzerowane', test: 'Posłuchaj', voices: 'Głos', voiceStyle: 'Jasny, wesoły głos dziewczynki, jak w bajce.', none: 'brak', noVoice: (l) => `Brak głosu (${l}): podpowiedzi są wyświetlane, ale nie czytane. Dodaj głos w Ustawienia › Dostępność › Zawartość mówiona › Głosy.`, progress: (d) => `${d.apples} jabłek · ${d.stars} gwiazdek · ${Object.keys(d.seenWords).length} słów · ${Object.keys(d.seenLetters).length}/26 liter`, privacy: 'Bez kont, reklam i śledzenia. Postępy zapisują się tylko na tym urządzeniu.', ios: 'iPad: jeśli nie ma dźwięku, sprawdź przełącznik wyciszenia i głośność, a potem wróć do ekranu startowego i dotknij Lei lub Ines.', on: 'Wł.', off: 'Wył.', close: 'Zamknij', changePlayer: 'Zmień gracza' },
+  ru: { title: 'Для родителей', language: 'Язык', langNote: 'Меню и подсказки на этом языке. Слова для изучения всегда на английском.', sound: 'Звуковые эффекты', music: 'Музыка', voice: 'Речь', range: 'Числа', rangeNote: 'Диапазон счёта', reset: 'Сбросить прогресс', resetSure: 'Нажмите ещё раз для сброса', resetDone: 'Прогресс сброшен', test: 'Послушать', voices: 'Голос', voiceStyle: 'Яркий, весёлый голос девочки, как в мультфильме.', none: 'нет', noVoice: (l) => `Нет голоса (${l}): подсказки показываются, но не озвучиваются. Добавьте голос: Настройки › Универсальный доступ › Устный контент › Голоса.`, progress: (d) => `${d.apples} яблок · ${d.stars} звёзд · ${Object.keys(d.seenWords).length} слов · ${Object.keys(d.seenLetters).length}/26 букв`, privacy: 'Без аккаунтов, рекламы и слежки. Прогресс хранится только на этом устройстве.', ios: 'iPad: если нет звука, проверьте переключатель беззвучного режима и громкость, затем вернитесь на стартовый экран и нажмите на Лею или Инес.', on: 'Вкл.', off: 'Выкл.', close: 'Закрыть', changePlayer: 'Сменить игрока' },
 };
 const CREDIT = 'Made for Lea by Tomasz Zdankowski';
 
@@ -1701,6 +1831,7 @@ function openParent() {
       <div class="p-block"><div class="p-label">${t.range} · ${t.rangeNote}</div>
         <div class="lang-pick range-pick"><button data-range="20" class="${RANGE() === 20 ? 'on' : ''}">1–20</button><button data-range="30" class="${RANGE() === 30 ? 'on' : ''}">1–30</button></div></div>
       <div class="p-row"><span>${t.sound}</span><button class="toggle ${s.sound ? 'on' : ''}" data-k="sound">${s.sound ? t.on : t.off}</button></div>
+      <div class="p-row"><span>${t.music}</span><button class="toggle ${s.music ? 'on' : ''}" data-k="music">${s.music ? t.on : t.off}</button></div>
       <div class="p-row"><span>${t.voice}</span><button class="toggle ${s.voice ? 'on' : ''}" data-k="voice">${s.voice ? t.on : t.off}</button></div>
       <div class="p-block"><div class="p-label">${t.voices}</div>
         <p class="p-voices">${t.voiceStyle}</p>
@@ -1717,7 +1848,7 @@ function openParent() {
     o.innerHTML = render();
     const t = PT[lang()];
     onTap($('.p-close', o), () => { o.remove(); go(App.screen || 'home', App.params || {}); });
-    $$('.toggle', o).forEach((b) => onTap(b, () => { Store.set(b.dataset.k, !Store.settings[b.dataset.k]); wire(); }));
+    $$('.toggle', o).forEach((b) => onTap(b, () => { Store.set(b.dataset.k, !Store.settings[b.dataset.k]); if (b.dataset.k === 'music') Audio.setMusic(Store.settings.music); wire(); }));
     $$('[data-lang]', o).forEach((b) => onTap(b, () => { Store.set('lang', b.dataset.lang); document.documentElement.lang = b.dataset.lang; wire(); }));
     $$('[data-range]', o).forEach((b) => onTap(b, () => { Store.set('range', +b.dataset.range); wire(); }));
     onTap($('.p-test', o), () => { Audio.unlock(); Audio.say([T('hello'), EN('A is for apple.'), EN('One, two, three!')]); });

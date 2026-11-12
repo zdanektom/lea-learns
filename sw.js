@@ -1,5 +1,5 @@
 /* Lea Learns service worker: offline-first. VERSION and ASSETS are filled in by build.mjs. */
-const VERSION = 'lea-learns-1.1.0-59484c17';
+const VERSION = 'lea-learns-1.2.0-be6acadc';
 const ASSETS = [
  "./",
  "./app.js",
@@ -26,6 +26,7 @@ const ASSETS = [
  "./assets/character/lea-wave.png",
  "./assets/fonts/fredoka.woff2",
  "./assets/fonts/nunito-cyrillic.woff2",
+ "./assets/music/theme.mp3",
  "./assets/voice/en/010dc60604abb5aa.mp3",
  "./assets/voice/en/0124f7f7a946fb99.mp3",
  "./assets/voice/en/01fd41db0eafa2d2.mp3",

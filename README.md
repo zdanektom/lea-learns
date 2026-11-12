@@ -37,7 +37,7 @@ cd dist && python3 -m http.server 8080   # then open http://localhost:8080
 
 * the interface language (**Polski / English / Русский**; Polish is the default) — this can also be changed with the **Polski / English / Русский** buttons on the start and home screens,
 * the counting range (1–20 / 1–30),
-* sound effects and speech on/off,
+* sound effects, background music and speech on/off,
 * the voices this device has,
 * a voice test,
 * change player,
@@ -48,7 +48,8 @@ The interface language changes the menus and the guide’s hints. **The vocabula
 ## Speech and sound
 
 * Speech is a bright, playful little-girl voice (pre-recorded, so it sounds the same on every iPad), in the style of a girl in a children’s cartoon. Guide phrases follow the interface language; the English words being learnt stay in English. If a clip is missing, the device’s own female voice is used as a fallback.
-* All sound effects (chimes, pops, Bacon’s “woof”) are generated with the Web Audio API. There are no audio files.
+* Cheerful original background music (a gentle music-box and flute loop) plays after the first tap, and gets quieter while someone is speaking. You can turn it off in the parent corner.
+* All sound effects (chimes, pops, Bacon’s “woof”) are generated with the Web Audio API.
 * **iOS notes:**
   * Safari only allows audio and speech after a tap, so the first tap on Lea or Ines unlocks both.
   * If there is no sound, check the silent switch and the volume, then go back to the start screen and tap a character again.
