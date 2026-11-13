@@ -19,6 +19,10 @@ cd dist && python3 -m http.server 8080   # then open http://localhost:8080
 2. Tap **Share** → **Add to Home Screen** → **Add**.
 3. Open **Lea Learns** from the Home Screen. It runs full-screen, follows the iPad when it is rotated (no orientation lock), and works offline after the first visit.
 
+### Full screen
+
+In the browser, the small square button in the top-right corner (next to the apples and stars, on the start screen and on home) switches full screen on and off; Esc or the system gesture also leaves it. iPhone Safari has no full-screen mode for web pages, so the button is hidden there: add Lea Learns to the Home Screen (Share → Add to Home Screen) and open it from its icon to play without browser bars. The parent corner shows this tip on iPhone.
+
 ## How to play
 
 * **Start:** tap Lea, Ines or Leo (“Who’s playing?”). This first tap also switches on sound and speech on iPad. The last choice is remembered. You can swap on the home screen with the small round face next to the character.
@@ -33,6 +37,7 @@ cd dist && python3 -m http.server 8080   # then open http://localhost:8080
 * **Numbers:** **Count** 1–20 (1–30 in the parent corner), shown as real objects. Above 10, the objects sit in ten-frames. **How many?** lets the child tap each object to count it aloud. **+ −** shows picture groups first and numerals a moment later. Sums go up to 20, or 30 when the 1–30 range is on.
 * **Shapes:** circle, square, triangle, rectangle, oval, star, heart, diamond, pentagon and hexagon, each a friendly coloured picture with its English name spoken. **Look** shows every shape and, for most shapes, real things with that shape (the ball is a circle, the pizza is a triangle). **Find**: “Show me … triangle”. **Match**: a real thing appears (clock, window, pizza, door, egg, kite…) and the child taps its shape.
 * **Days:** Monday to Sunday, each with its own colour and a little routine picture. **Look** highlights today from the device date (“Today is Friday!”). **Sing** lights up the days one by one as the guide sings the week. **What comes next?** shows two days and a gap to fill.
+* **Lea explains:** the first time home opens, the guide (Lea, or whoever is playing) gives a short tour with her voice and a speech bubble while a glowing ring and a bouncing arrow point at each button: the lollipops, the pencil (dress-up), swap-player, Bacon, apples and stars, language, full screen, the grown-ups corner and the **?** help button. Tap anywhere for the next step, or ✕ to skip. Every game and mode explains its own controls the first time (back arrow, speaker, answers, modes); this never blocks play: tapping the game ends it. Tap **?** (top right) or tap the guide to hear it again. Grown-ups can switch the automatic explanations off in the parent corner.
 * A miss is never “wrong”: the card wobbles, the guide says “try again”, and after two misses the right answer gently glows. Correct answers give stars, apples, confetti, a jump from the guide, and sometimes Bacon.
 
 ## Parent corner

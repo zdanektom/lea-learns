@@ -1,13 +1,13 @@
-/* Lea Learns 1.4.1 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.4.2 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.4.2';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
 const Store = (() => {
   const KEY = 'lea-learns:v1';
-  const fresh = () => ({ apples: 0, stars: 0, rounds: 0, seenWords: {}, seenLetters: {}, played: {}, chars: [], looks: {}, settings: { player: null, sound: true, music: true, voice: true, lang: 'en', range: 20 } });
+  const fresh = () => ({ apples: 0, stars: 0, rounds: 0, seenWords: {}, seenLetters: {}, played: {}, chars: [], looks: {}, tours: {}, settings: { player: null, tours: true, sound: true, music: true, voice: true, lang: 'en', range: 20 } });
   let d;
   try { d = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY) || '{}')); d.settings = Object.assign(fresh().settings, d.settings || {}); if (!Array.isArray(d.chars)) d.chars = []; if (!d.looks || typeof d.looks !== 'object') d.looks = {}; } catch (e) { d = fresh(); }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} };
@@ -19,6 +19,8 @@ const Store = (() => {
     addStars(n) { d.stars += n; d.rounds += 1; save(); },
     seeWord(k) { d.seenWords[k] = 1; save(); },
     seeLetter(l) { d.seenLetters[l] = 1; save(); },
+    toured(k) { return !!(d.tours && d.tours[k]); },
+    markTour(k) { if (!d.tours) d.tours = {}; d.tours[k] = 1; save(); },
     played(id) { d.played[id] = (d.played[id] || 0) + 1; save(); },
     /* Custom characters (made in "Create your character") and edited looks for Lea / Ines. */
     get chars() { return d.chars; },
@@ -27,7 +29,7 @@ const Store = (() => {
     deleteChar(id) { d.chars = d.chars.filter((c) => c.id !== id); if (d.settings.player === id) d.settings.player = 'lea'; save(); },
     look(who) { return d.looks[who] || null; },
     setLook(who, p) { if (p) d.looks[who] = p; else delete d.looks[who]; save(); },
-    reset() { const s = d.settings, c = d.chars, l = d.looks; d = fresh(); d.settings = s; d.chars = c; d.looks = l; save(); },
+    reset() { const s = d.settings, c = d.chars, l = d.looks, tr = d.tours; d = fresh(); d.tours = tr; d.settings = s; d.chars = c; d.looks = l; save(); },
   };
 })();
 
@@ -124,7 +126,7 @@ const STR = {
   en: {
     creator: 'Create your character!', newChar: 'New', editLook: 'Change my look', surprise: 'Surprise!', cluck: 'Cluck cluck!', roar: 'Roar!', likeBefore: 'Just like before!',
     crAsk: { base: 'Who will you be?', gender: 'Girl or boy?', hair: 'Choose a hairstyle!', hairColour: 'Choose a hair colour!', eyes: 'Choose an eye colour!', face: 'Choose a face shape!', skin: 'Choose a skin colour!', body: 'Choose a body shape!', outfit: 'Choose an outfit!', acc: 'Choose something extra!', name: 'What’s my name?' },
-    shapes: 'Shapes', days: 'Days', match: 'Match', sing: 'Sing', today: 'Today', whatShape: 'What shape is it?', learnShapes: 'Let’s learn shapes!', tapShape: 'Tap a shape!', daysWeek: 'Days of the week!', singDays: 'Let’s sing the days!', whatNext: 'What comes next?', tapDay: 'Tap a day!',
+    fsEnter: 'Full screen', fsExit: 'Exit full screen', shapes: 'Shapes', days: 'Days', match: 'Match', sing: 'Sing', today: 'Today', whatShape: 'What shape is it?', learnShapes: 'Let’s learn shapes!', tapShape: 'Tap a shape!', daysWeek: 'Days of the week!', singDays: 'Let’s sing the days!', whatNext: 'What comes next?', tapDay: 'Tap a day!',
     words: 'Words', abc: 'ABC', numbers: 'Numbers', whosPlaying: 'Who’s playing?',
     food: 'Food', animals: 'Animals', colours: 'Colours', home: 'Home', nature: 'Nature', body: 'Body',
     look: 'Look', find: 'Find', sayIt: 'Say', trace: 'Trace', count: 'Count', howMany: 'How many?', sums: '+  −',
@@ -140,7 +142,7 @@ const STR = {
   pl: {
     creator: 'Stwórz swoją postać!', newChar: 'Nowa postać', editLook: 'Zmień wygląd', surprise: 'Niespodzianka!', cluck: 'Ko ko ko!', roar: 'Wrrr!', likeBefore: 'Jak dawniej!',
     crAsk: { base: 'Kim będziesz?', gender: 'Dziewczynka czy chłopiec?', hair: 'Wybierz fryzurę!', hairColour: 'Wybierz kolor włosów!', eyes: 'Wybierz kolor oczu!', face: 'Wybierz kształt buzi!', skin: 'Wybierz kolor skóry!', body: 'Wybierz sylwetkę!', outfit: 'Wybierz ubranie!', acc: 'Wybierz dodatek!', name: 'Jak mam na imię?' },
-    shapes: 'Kształty', days: 'Dni', match: 'Dopasuj', sing: 'Śpiewaj', today: 'Dziś', whatShape: 'Jaki to kształt?', learnShapes: 'Poznajmy kształty!', tapShape: 'Dotknij kształtu!', daysWeek: 'Dni tygodnia!', singDays: 'Zaśpiewajmy dni!', whatNext: 'Co jest dalej?', tapDay: 'Dotknij dnia!',
+    fsEnter: 'Pełny ekran', fsExit: 'Zamknij pełny ekran', shapes: 'Kształty', days: 'Dni', match: 'Dopasuj', sing: 'Śpiewaj', today: 'Dziś', whatShape: 'Jaki to kształt?', learnShapes: 'Poznajmy kształty!', tapShape: 'Dotknij kształtu!', daysWeek: 'Dni tygodnia!', singDays: 'Zaśpiewajmy dni!', whatNext: 'Co jest dalej?', tapDay: 'Dotknij dnia!',
     words: 'Słowa', abc: 'ABC', numbers: 'Liczby', whosPlaying: 'Kto gra?',
     food: 'Jedzenie', animals: 'Zwierzęta', colours: 'Kolory', home: 'Dom', nature: 'Przyroda', body: 'Ciało',
     look: 'Patrz', find: 'Pokaż', sayIt: 'Powiedz', trace: 'Rysuj', count: 'Liczenie', howMany: 'Ile?', sums: '+  −',
@@ -156,7 +158,7 @@ const STR = {
   ru: {
     creator: 'Создай своего персонажа!', newChar: 'Новый', editLook: 'Изменить образ', surprise: 'Сюрприз!', cluck: 'Ко-ко-ко!', roar: 'Р-р-р!', likeBefore: 'Как раньше!',
     crAsk: { base: 'Кем ты будешь?', gender: 'Девочка или мальчик?', hair: 'Выбери причёску!', hairColour: 'Выбери цвет волос!', eyes: 'Выбери цвет глаз!', face: 'Выбери форму лица!', skin: 'Выбери цвет кожи!', body: 'Выбери фигуру!', outfit: 'Выбери одежду!', acc: 'Выбери украшение!', name: 'Как меня зовут?' },
-    shapes: 'Формы', days: 'Дни', match: 'Подбери', sing: 'Пой', today: 'Сегодня', whatShape: 'Какая это форма?', learnShapes: 'Давай учить формы!', tapShape: 'Нажми на форму!', daysWeek: 'Дни недели!', singDays: 'Споём дни недели!', whatNext: 'Что дальше?', tapDay: 'Нажми на день!',
+    fsEnter: 'Полный экран', fsExit: 'Выйти из полноэкранного режима', shapes: 'Формы', days: 'Дни', match: 'Подбери', sing: 'Пой', today: 'Сегодня', whatShape: 'Какая это форма?', learnShapes: 'Давай учить формы!', tapShape: 'Нажми на форму!', daysWeek: 'Дни недели!', singDays: 'Споём дни недели!', whatNext: 'Что дальше?', tapDay: 'Нажми на день!',
     words: 'Слова', abc: 'ABC', numbers: 'Числа', whosPlaying: 'Кто играет?',
     food: 'Еда', animals: 'Животные', colours: 'Цвета', home: 'Дом', nature: 'Природа', body: 'Тело',
     look: 'Смотри', find: 'Покажи', sayIt: 'Скажи', trace: 'Обведи', count: 'Счёт', howMany: 'Сколько?', sums: '+  −',
@@ -1345,8 +1347,13 @@ const Audio = (() => {
       next();
     });
   }
+  let live = 0; // how many say() calls are still playing (the tour waits for quiet before it talks)
   function say(parts, opts = {}) {
     if (!Store.settings.voice) return Promise.resolve();
+    live++; const done = (r) => { live = Math.max(0, live - 1); return r; };
+    return say0(parts, opts).then(done, done);
+  }
+  function say0(parts, opts = {}) {
     duckMusic(true);
     const list = partsList(parts);
     const go = () => {
@@ -1382,7 +1389,7 @@ const Audio = (() => {
     return Promise.resolve(p).then((r) => { duckMusic(false); return r; }, () => { duckMusic(false); });
   }
   function hush() {
-    queueToken++;
+    queueToken++; live = 0;
     duckCount = 0;
     applyMusicVol();
     if (synth) synth.cancel();
@@ -1416,7 +1423,7 @@ const Audio = (() => {
   };
   function sfx(name, arg) { if (!Store.settings.sound) return; if (!ensureCtx()) return; try { SFX[name] && SFX[name](arg); } catch (e) {} }
 
-  return { unlock, say, hush, sfx, setMusic, voiceFor: (L) => (voices[L] ? `${voices[L].name} (${voices[L].lang})` : ''), get hasSpeech() { return !!synth; }, get listLoaded() { return listLoaded; } };
+  return { get speaking() { return live > 0; }, unlock, say, hush, sfx, setMusic, voiceFor: (L) => (voices[L] ? `${voices[L].name} (${voices[L].lang})` : ''), get hasSpeech() { return !!synth; }, get listLoaded() { return listLoaded; } };
 })();
 
 
@@ -1473,6 +1480,7 @@ function later(fn, ms) { const t = setTimeout(fn, ms); App.timers.push(t); retur
 
 function go(name, params = {}) {
   App.timers.forEach(clearTimeout); App.timers = [];
+  Tour.stop(false);
   Audio.hush();
   closeOverlays();
   const root = $('#app');
@@ -1486,6 +1494,9 @@ function go(name, params = {}) {
   if (el._layout) requestAnimationFrame(el._layout);
   if (el._enter) later(el._enter, 320);
   document.body.dataset.screen = name;
+  const gl = el.querySelector('.guide .guide-lea'); // tap the guide → she explains this screen again
+  if (gl) { gl.classList.add('tappable'); onTap(gl, () => Tour.replay(), { sound: 'pop' }); }
+  later(() => Tour.auto(name, params), name === 'home' ? 1500 : 900);
 }
 
 /* Top bar used by every activity screen. */
@@ -1495,6 +1506,7 @@ function topBar({ back, title, art: icon, colour }) {
     <div class="bar-title" style="--c:${colour || 'var(--red)'}">${icon ? `<span class="bar-icon">${art(icon)}</span>` : ''}<span>${title}</span></div>
     <div class="apples-chip" aria-label="Apples">${art('apple')}<b>${Store.data.apples}</b></div>
   </header>`);
+  bar.insertBefore(Tour.button(), bar.querySelector('.apples-chip'));
   onTap(bar.querySelector('.home-btn'), () => (typeof back === 'function' ? back() : go(back || 'home')), { sound: 'whoosh' });
   return bar;
 }
@@ -1587,6 +1599,35 @@ function runChoice({ stage, choices, render, isRight, onRight, onMiss, cls = '' 
 
 
 /* Visible language switch on the home and start screens. Same setting as the parent corner. */
+/* Full screen (v1.4.2): Fullscreen API with the webkit prefix (Safari / iPad). Where it does not exist (iPhone Safari) the
+   button is hidden; there "Share → Add to Home Screen" opens the app without browser bars (see the parent corner). */
+const FS = (() => {
+  const d = document, root = d.documentElement;
+  const supported = () => !!((d.fullscreenEnabled || d.webkitFullscreenEnabled) && (root.requestFullscreen || root.webkitRequestFullscreen));
+  const active = () => !!(d.fullscreenElement || d.webkitFullscreenElement);
+  const ICON_IN = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 18 V8 H18 M30 8 H40 V18 M40 30 V40 H30 M18 40 H8 V30" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_OUT = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M18 8 V18 H8 M40 18 H30 V8 M30 40 V30 H40 M8 30 H18 V40" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const sync = () => document.querySelectorAll('.fs-btn').forEach((b) => {
+    const on = active(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+    b.setAttribute('aria-label', T(on ? 'fsExit' : 'fsEnter')); b.title = T(on ? 'fsExit' : 'fsEnter'); b.innerHTML = on ? ICON_OUT : ICON_IN;
+  });
+  function toggle() {
+    try {
+      const r = active() ? (d.exitFullscreen || d.webkitExitFullscreen).call(d) : (root.requestFullscreen || root.webkitRequestFullscreen).call(root, { navigationUI: 'hide' });
+      if (r && r.catch) r.catch(() => sync());
+    } catch (e) { sync(); }
+  }
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) => d.addEventListener(ev, sync));
+  function button() {
+    const b = h(`<button class="fs-btn" type="button"></button>`);
+    if (!supported()) b.hidden = true;
+    onTap(b, toggle, { sound: 'pop' });
+    setTimeout(sync); return b;
+  }
+  const standalone = () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
+  return { supported, active, toggle, sync, button, standalone };
+})();
+
 function langBar() {
   const labels = { pl: 'Polski', en: 'English', ru: 'Русский' };
   const aria = { pl: 'Język', en: 'Language', ru: 'Язык' };
@@ -1664,6 +1705,213 @@ const Dog = (() => {
 })();
 
 
+/* ===== src/46-tour.js ===== */
+/* Lea Learns — guided tour (v1.4.2). The guide (Lea by default, or whoever is playing) explains each button with her
+   recorded voice and a speech bubble, while a ring and a bouncing arrow point at the real button. Positions always come
+   from the button's live getBoundingClientRect(), so it works at every size and after rotation.
+   Home: full tour on the first visit (tap anywhere = next, ✕ = skip). Games: a short tour the first time a screen or mode
+   opens that never blocks play (any tap in the game ends it). Replay any time with the “?” button or by tapping the guide.
+   The texts below are also read by tools/gen-voice.py (between the TOUR-JSON markers) to record the clips. */
+const Tour = (() => {
+  const TXT = /*TOUR-JSON*/{
+    "en": {
+      "hello": "Hi! Let me show you around!", "lollies": "Tap a lollipop to play a game.", "pencil": "The pencil dresses me up!",
+      "swap": "Tap here to change who plays.", "dog": "This is Bacon! Tap him for a surprise.", "score": "Here are your apples and stars.",
+      "lang": "Here you change the language.", "fs": "This button makes the game fill the whole screen.",
+      "parent": "Grown-ups: hold this corner for three seconds.", "help": "Tap the question mark and I’ll show you again!",
+      "back": "The arrow takes you back.", "helpGame": "Tap the question mark to hear me again.",
+      "cats": "Pick a group of pictures.", "modes3": "Look, find, then say: three little steps.",
+      "tapPic": "Tap a picture to hear its name.", "speaker": "Tap the speaker to hear it again.", "pickRight": "Then tap the right picture.",
+      "sayIt": "Say the word, then tap to check.", "abcModes": "Look at letters, find them, or trace them.",
+      "tapLetter": "Tap a letter to hear it.", "trace": "Trace the letter with your finger.",
+      "numModes": "Count, how many, or adding. Pick one!", "numStrip": "Tap a number to count things.",
+      "countEach": "Tap each thing to count it.", "tapAnswer": "Then tap the answer.", "sumLook": "Look at the groups of things.",
+      "shapeModes": "Look at shapes, find them, or match real things.", "tapShapeHear": "Tap a shape to hear its name.",
+      "tapShape2": "Tap the right shape.", "matchThing": "What shape is this thing? Tap its shape.",
+      "dayModes": "Look at the days, sing them, or guess what comes next.", "todayStar": "The star shows today.",
+      "tapDayHear": "Tap a day to hear it.", "singPlay": "Tap play and sing along!", "seqNext": "Which day comes next? Tap it.",
+      "crTabs": "Pick who, clothes and hair colour.", "crDice": "The dice makes a surprise!", "crSave": "The green tick saves it."
+    },
+    "pl": {
+      "hello": "Cześć! Pokażę ci, co tu jest!", "lollies": "Dotknij lizaka, żeby zagrać.", "pencil": "Ołówkiem możesz mnie przebrać!",
+      "swap": "Tu zmienisz, kto gra.", "dog": "To jest Bacon! Dotknij go, będzie niespodzianka.", "score": "Tu są twoje jabłka i gwiazdki.",
+      "lang": "Tu zmieniasz język.", "fs": "Ten przycisk włącza pełny ekran.",
+      "parent": "Dorośli: przytrzymajcie ten róg przez trzy sekundy.", "help": "Dotknij znaku zapytania, a pokażę ci jeszcze raz!",
+      "back": "Strzałka zabiera cię z powrotem.", "helpGame": "Dotknij znaku zapytania, a powtórzę.",
+      "cats": "Wybierz grupę obrazków.", "modes3": "Patrz, znajdź, powiedz: trzy małe kroki.",
+      "tapPic": "Dotknij obrazka, a usłyszysz nazwę.", "speaker": "Dotknij głośnika, żeby usłyszeć jeszcze raz.", "pickRight": "Potem dotknij właściwego obrazka.",
+      "sayIt": "Powiedz słowo, potem dotknij i sprawdź.", "abcModes": "Oglądaj litery, szukaj ich albo rysuj palcem.",
+      "tapLetter": "Dotknij litery, żeby ją usłyszeć.", "trace": "Rysuj literę palcem.",
+      "numModes": "Liczenie, ile jest, albo dodawanie. Wybierz!", "numStrip": "Dotknij liczby i policz rzeczy.",
+      "countEach": "Dotykaj po kolei i licz.", "tapAnswer": "Potem dotknij odpowiedzi.", "sumLook": "Popatrz na grupki rzeczy.",
+      "shapeModes": "Oglądaj kształty, szukaj ich albo dopasuj rzeczy.", "tapShapeHear": "Dotknij kształtu, a usłyszysz nazwę.",
+      "tapShape2": "Dotknij właściwego kształtu.", "matchThing": "Jaki kształt ma ta rzecz? Dotknij go.",
+      "dayModes": "Oglądaj dni, śpiewaj je albo zgadnij, co dalej.", "todayStar": "Gwiazdka pokazuje dzisiaj.",
+      "tapDayHear": "Dotknij dnia, żeby go usłyszeć.", "singPlay": "Dotknij i śpiewaj razem ze mną!", "seqNext": "Który dzień jest następny? Dotknij go.",
+      "crTabs": "Wybierz, kto, ubranie i kolor włosów.", "crDice": "Kostka robi niespodziankę!", "crSave": "Zielony znaczek zapisuje."
+    },
+    "ru": {
+      "hello": "Привет! Я всё тебе покажу!", "lollies": "Нажми на леденец, чтобы играть.", "pencil": "Карандашом можно меня переодеть!",
+      "swap": "Здесь можно поменять, кто играет.", "dog": "Это Bacon! Нажми на него, будет сюрприз.", "score": "Здесь твои яблоки и звёзды.",
+      "lang": "Здесь меняется язык.", "fs": "Эта кнопка включает полный экран.",
+      "parent": "Взрослые: держите этот уголок три секунды.", "help": "Нажми на вопросик, и я покажу ещё раз!",
+      "back": "Стрелка возвращает назад.", "helpGame": "Нажми на вопросик, и я повторю.",
+      "cats": "Выбери группу картинок.", "modes3": "Смотри, найди, скажи: три маленьких шага.",
+      "tapPic": "Нажми на картинку и услышишь название.", "speaker": "Нажми на динамик, чтобы послушать ещё раз.", "pickRight": "Потом нажми на правильную картинку.",
+      "sayIt": "Скажи слово, потом нажми и проверь.", "abcModes": "Смотри на буквы, ищи их или обводи пальцем.",
+      "tapLetter": "Нажми на букву, чтобы её услышать.", "trace": "Обведи букву пальцем.",
+      "numModes": "Считать, сколько, или складывать. Выбирай!", "numStrip": "Нажми на число и посчитай.",
+      "countEach": "Нажимай на каждую вещь и считай.", "tapAnswer": "Потом нажми на ответ.", "sumLook": "Посмотри на группы вещей.",
+      "shapeModes": "Смотри на формы, ищи их или подбирай вещи.", "tapShapeHear": "Нажми на форму и услышишь название.",
+      "tapShape2": "Нажми на правильную форму.", "matchThing": "Какой формы эта вещь? Нажми на форму.",
+      "dayModes": "Смотри на дни, пой их или угадай, что дальше.", "todayStar": "Звёздочка показывает сегодня.",
+      "tapDayHear": "Нажми на день, чтобы его услышать.", "singPlay": "Нажми и пой вместе со мной!", "seqNext": "Какой день следующий? Нажми на него.",
+      "crTabs": "Выбери, кто, одежду и цвет волос.", "crDice": "Кубик делает сюрприз!", "crSave": "Зелёная галочка сохраняет."
+    }
+  }/*END-TOUR-JSON*/;
+  const LBL = { en: { help: 'Help', skip: 'Skip' }, pl: { help: 'Pomoc', skip: 'Pomiń' }, ru: { help: 'Помощь', skip: 'Пропустить' } };
+  const tt = (k) => (TXT[lang()] || TXT.en)[k] || TXT.en[k];
+  const lbl = (k) => (LBL[lang()] || LBL.en)[k];
+  const S = '.screen:not(.screen-out) ';
+  const HOME = [['hello', '.hero-lea'], ['lollies', '.lollies'], ['pencil', '.edit-look'], ['swap', '.swap'], ['dog', '.home-dog'],
+    ['score', '.home-score'], ['lang', '.lang-bar'], ['fs', '.fs-btn'], ['parent', '.parent-corner'], ['help', '.help-btn']];
+  const QUIZ = [['speaker', '.prompt'], ['pickRight', '.quiz-area']];
+  const SCREEN = {
+    words: [['cats', '.cat-grid']], category: [['modes3', '.mode-switch']], abc: [['abcModes', '.mode-switch']],
+    numbers: [['numModes', '.num-modes']], count: [['numStrip', '.num-strip']],
+    howmany: [['countEach', '.scene'], ['tapAnswer', '.quiz-area']], sums: [['sumLook', '.scene'], ['tapAnswer', '.quiz-area']],
+    shapes: [['shapeModes', '.num-modes']], shapeLook: [['tapShapeHear', '.shape-grid']],
+    shapeFind: [['speaker', '.prompt'], ['tapShape2', '.quiz-area']], shapeMatch: [['matchThing', '.quiz-area']],
+    days: [['dayModes', '.num-modes']], dayLook: [['todayStar', '.week .day-today'], ['tapDayHear', '.week']],
+    daySing: [['singPlay', '.sing-play']], dayNext: [['seqNext', '.quiz-area']],
+    creator: [['crTabs', '.cr-tabs'], ['crDice', '.cr-dice'], ['crSave', '.cr-save']],
+  };
+  const MODES = {
+    'category:look': [['tapPic', '.word-grid']], 'category:find': QUIZ, 'category:say': [['sayIt', '.say-box']],
+    'abc:look': [['tapLetter', '.letter-grid']], 'abc:find': QUIZ, 'abc:trace': [['trace', '.trace-box']],
+  };
+  const modeKey = (name, params) => (MODES[`${name}:${(params && params.mode) || 'look'}`] ? `${name}:${(params && params.mode) || 'look'}` : '');
+  const find = (sel) => document.querySelector(S + sel) || document.querySelector(sel);
+  const visible = (sel) => { const e = find(sel); if (!e || e.hidden || e.closest('[hidden]')) return false; const r = e.getBoundingClientRect();
+    return r.width > 4 && r.height > 4 && r.right > 0 && r.bottom > 0 && r.left < innerWidth && r.top < innerHeight && getComputedStyle(e).visibility !== 'hidden'; };
+
+  /* Which steps to show on this screen. all = replay (help button): everything for the screen, already seen or not. */
+  function stepsFor(name, params, all) {
+    if (name === 'home') return all || !Store.toured('home') ? { keys: ['home'], steps: HOME.slice() } : null;
+    const mk = modeKey(name, params), out = [], keys = [];
+    const screenNew = SCREEN[name] && (all || !Store.toured(name)), modeNew = mk && (all || !Store.toured(mk));
+    if (!screenNew && !modeNew) return null;
+    if (all || !Store.toured('back')) { out.push(['back', '.bar .home-btn']); keys.push('back'); }
+    if (screenNew) { out.push(...SCREEN[name]); keys.push(name); }
+    if (modeNew) { out.push(...MODES[mk]); keys.push(mk); }
+    if (all || !Store.toured('helpGame')) { out.push(['helpGame', '.help-btn']); keys.push('helpGame'); }
+    return { keys, steps: out };
+  }
+
+  const ARROW = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4 L58 32 H42 V60 H22 V32 H6 Z" fill="#ff7043" stroke="#fff" stroke-width="5" stroke-linejoin="round"/></svg>';
+  let cur = null;
+
+  function place() {
+    if (!cur || !cur.el) return;
+    const st = cur, r0 = st.el.getBoundingClientRect(), W = innerWidth, H = innerHeight, pad = 8;
+    const r = { left: Math.max(2, r0.left - pad), top: Math.max(2, r0.top - pad), right: Math.min(W - 2, r0.right + pad), bottom: Math.min(H - 2, r0.bottom + pad) };
+    const ring = st.layer.querySelector('.tour-ring'), arrow = st.layer.querySelector('.tour-arrow');
+    const round = parseFloat(getComputedStyle(st.el).borderRadius) >= Math.min(r0.width, r0.height) * 0.4;
+    Object.assign(ring.style, { left: r.left + 'px', top: r.top + 'px', width: (r.right - r.left) + 'px', height: (r.bottom - r.top) + 'px', borderRadius: round ? '999px' : '24px' });
+    const A = Math.round(Math.min(72, Math.max(48, Math.min(W, H) * 0.09))), gap = 6;
+    const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+    const room = { below: H - r.bottom, above: r.top, left: r.left, right: W - r.right };
+    const order = (cy > H / 2 ? ['above', 'below'] : ['below', 'above']).concat(room.left > room.right ? ['left', 'right'] : ['right', 'left']);
+    const side = order.find((s) => room[s] >= A + gap + 4) || 'inside';
+    const clampX = (x) => Math.max(4, Math.min(W - A - 4, x)), clampY = (y) => Math.max(4, Math.min(H - A - 4, y));
+    let x, y, rot;
+    if (side === 'below') { x = clampX(cx - A / 2); y = r.bottom + gap; rot = 0; }
+    else if (side === 'above') { x = clampX(cx - A / 2); y = r.top - gap - A; rot = 180; }
+    else if (side === 'left') { x = r.left - gap - A; y = clampY(cy - A / 2); rot = 90; }
+    else if (side === 'right') { x = r.right + gap; y = clampY(cy - A / 2); rot = -90; }
+    else { x = clampX(cx - A / 2); y = clampY(r.top + 10); rot = 180; }
+    Object.assign(arrow.style, { left: x + 'px', top: y + 'px', width: A + 'px', height: A + 'px' });
+    arrow.style.setProperty('--rot', rot + 'deg'); arrow.dataset.side = side;
+    const skip = st.layer.querySelector('.tour-skip'), hb = $(S + '.hero-bubble');
+    if (skip && hb && !hb.hidden) { const q = hb.getBoundingClientRect();
+      Object.assign(skip.style, { left: Math.max(4, Math.min(W - 48, q.right - 26)) + 'px', top: Math.max(4, Math.min(H - 48, q.top - 22)) + 'px' }); }
+  }
+
+  function show(k) {
+    const st = cur; if (!st) return;
+    const g = $(S + '.guide');
+    if (st.home) st.home(tt(k));
+    else if (g) { setGuide('point', tt(k)); st.layer.querySelector('.tour-say').hidden = true; }
+    else { // no guide on this screen (creator): a small bubble on the side away from the button
+      const b = st.layer.querySelector('.tour-say'); b.hidden = false; b.textContent = tt(k);
+      const r = st.el.getBoundingClientRect(); b.dataset.at = r.top + r.height / 2 > innerHeight / 2 ? 'top' : 'bottom';
+    }
+  }
+
+  function next() {
+    const st = cur; if (!st) return;
+    clearTimeout(st.timer);
+    do { st.i++; } while (st.i < st.steps.length && !visible(st.steps[st.i][1]));
+    if (st.i >= st.steps.length) return stop(false);
+    const [k, sel] = st.steps[st.i]; st.el = find(sel);
+    st.layer.dataset.step = k; show(k); place(); requestAnimationFrame(place);
+    const my = st.i, t0 = Date.now();
+    Audio.say(tt(k)).then(() => {
+      if (cur !== st || st.i !== my) return;
+      st.timer = setTimeout(() => { if (cur === st && st.i === my) next(); }, Math.max(700, 2600 - (Date.now() - t0)));
+    });
+  }
+
+  function run(name, params, all) {
+    stop(false);
+    const plan = stepsFor(name, params, all); if (!plan) return false;
+    plan.keys.forEach((k) => Store.markTour(k)); // mark at the start, so an interrupted tour does not come back every time
+    const block = name === 'home';
+    const layer = h(`<div class="tour ${block ? 'block' : ''}" data-screen="${name}"><div class="tour-ring"></div><div class="tour-arrow">${ARROW}</div><div class="bubble tour-say" hidden></div>${block ? `<button class="round-btn tour-skip" aria-label="${lbl('skip')}">${ICON.close}</button>` : ''}</div>`);
+    document.body.appendChild(layer);
+    const st = { name, steps: plan.steps, i: -1, layer, el: null, timer: 0, home: null, onDone: null };
+    if (block) {
+      const el = $(S + '.hero-lea'), bubble = $(S + '.hero-bubble');
+      st.home = (text) => {
+        if (el) { el.addEventListener('load', place, { once: true }); el.src = poseSrc('point'); el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); }
+        if (bubble) { bubble.hidden = false; bubble.textContent = text; bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop'); }
+      };
+      st.onDone = () => { if (el && el.isConnected) el.src = poseSrc('front'); };
+      layer.addEventListener('pointerup', (e) => { e.stopPropagation(); if (e.target.closest('.tour-skip')) return stop(true); Audio.hush(); next(); });
+    } else {
+      st.onAny = (e) => { if (!e.target.closest('.help-btn')) stop(true); };
+      document.addEventListener('pointerdown', st.onAny, true);
+    }
+    st.onResize = () => place(); addEventListener('resize', st.onResize);
+    st.tick = setInterval(place, 400);
+    cur = st; next(); return true;
+  }
+
+  function stop(hush) {
+    const st = cur; if (!st) return; cur = null;
+    clearTimeout(st.timer); clearInterval(st.tick); removeEventListener('resize', st.onResize);
+    if (st.onAny) document.removeEventListener('pointerdown', st.onAny, true);
+    st.layer.remove(); if (st.onDone) st.onDone();
+    if (hush) Audio.hush();
+  }
+
+  /* After a screen opens: wait until its own greeting / question has been said, then explain (first time only). */
+  function auto(name, params) {
+    if (!Store.settings.tours || window.LEA_NO_AUTO_TOUR || name === 'gate' || !stepsFor(name, params, false)) return; // flag: older tests only
+    let waited = 0;
+    const tryNow = () => {
+      if (App.screen !== name || document.querySelector('.overlay, .round-end')) return;
+      if ((Audio.speaking || App.busy) && waited < 9000) { waited += 300; later(tryNow, 300); return; }
+      run(name, params, false);
+    };
+    tryNow();
+  }
+  const replay = () => run(App.screen, App.params || {}, true);
+  function button() { const b = h(`<button class="help-btn" type="button" aria-label="${lbl('help')}" title="${lbl('help')}">?</button>`); onTap(b, replay, { sound: 'pop' }); return b; }
+  return { TXT, auto, run, replay, stop, button, place, stepsFor, next: () => next(), get active() { return cur ? { screen: cur.name, step: cur.steps[cur.i] && cur.steps[cur.i][0], sel: cur.steps[cur.i] && cur.steps[cur.i][1], i: cur.i, n: cur.steps.length } : null; } };
+})();
+
+
 /* ===== src/50-home.js ===== */
 /* Lea Learns — the candy house in the clouds: character pick (also unlocks audio on iOS) and home. */
 const WORLD = {
@@ -1711,7 +1959,7 @@ SCREENS.gate = () => {
   </section>`);
   el.prepend(worldLayer());
   el.appendChild(parentCorner());
-  $('.world-top-right', el).appendChild(langBar());
+  $('.world-top-right', el).append(langBar(), FS.button());
   const nb = $('.picker-new', el);
   if (nb) onTap(nb, () => { Audio.unlock(); nb.classList.add('chosen'); setTimeout(() => go('creator', { id: 'new' }), 350); }, { sound: 'open' });
   $$('.picker[data-who]', el).forEach((b) => onTap(b, () => {
@@ -1752,7 +2000,7 @@ SCREENS.home = ({ hello } = {}) => {
   </section>`);
   el.prepend(worldLayer());
   el.appendChild(parentCorner());
-  $('.world-top-right', el).prepend(langBar());
+  $('.world-top-right', el).prepend(langBar()); $('.world-top-right', el).append(Tour.button(), FS.button());
   const talk = (text, speech) => {
     const img = $('.hero-lea', el); const b = $('.hero-bubble', el);
     img.classList.remove('hop'); void img.offsetWidth; img.classList.add('hop');
@@ -1777,7 +2025,7 @@ SCREENS.home = ({ hello } = {}) => {
   const placeDog = () => { // Bacon sits right above the pencil, on the free right edge — never on a lollipop
     const r = pen.getBoundingClientRect(); if (!r.height) return;
     dog.style.right = Math.round(innerWidth - r.right) + 'px';
-    dog.style.bottom = Math.round(innerHeight - r.top + 10) + 'px';
+    dog.style.bottom = Math.round(innerHeight - r.top + 16) + 'px';
   };
   const placePen = () => {
     pen.style.bottom = '';
@@ -1789,7 +2037,7 @@ SCREENS.home = ({ hello } = {}) => {
   };
   el._layout = () => { placeOnWorld(el); placePen(); };
   el._enter = () => {
-    placeOnWorld(el); placePen(); later(placePen, 700);
+    placeOnWorld(el); placePen(); later(placePen, 700); later(placePen, 1400); // again once the pencil's own entrance has settled
     hello ? talk(T('hi', playerName()), [hiSpeech(), T('whatPlay')]) : talk(T('whatPlay'));
     // Bacon always sits on the cloud above the pencil (tap him for a gag); sometimes he also bursts in later.
     later(() => { placeDog(); dog.hidden = false; dog.classList.add('in'); }, 600);
@@ -1889,7 +2137,7 @@ SCREENS.creator = ({ id = 'new', from } = {}) => {
     <header class="bar cr-bar">
       <button class="round-btn home-btn cr-back" aria-label="${t.back}">${ICON.back}</button>
       <div class="bar-title" style="--c:var(--purple)"><span>${builtin ? T('editLook') : T('creator')}</span></div>
-      <span class="cr-bar-gap"></span>
+      <span class="cr-bar-gap"></span><span class="cr-help"></span>
     </header>
     <div class="cr-main">
       <div class="cr-show">
@@ -1909,6 +2157,7 @@ SCREENS.creator = ({ id = 'new', from } = {}) => {
       </div>
     </div>
   </section>`);
+  { const hb = el.querySelector('.cr-help'); hb.replaceWith(Tour.button()); }
   const img = $('.cr-img', el), opts = $('.cr-opts', el), nameIn = $('.cr-name', el);
   if (nameIn) nameIn.value = p.name;
   const hop = () => { img.classList.remove('hop'); void img.offsetWidth; img.classList.add('hop'); };
@@ -2828,9 +3077,9 @@ SCREENS.dayNext = () => {
 /* ===== src/85-parent.js ===== */
 /* Lea Learns — parent corner (hold the top-right corner for 3 seconds). Shown in the chosen interface language. */
 const PT = {
-  en: { title: 'For parents', language: 'Language', langNote: 'Menus and the guide’s hints use this language. The words being learnt are always English.', sound: 'Sound effects', music: 'Music', voice: 'Speech', range: 'Numbers', rangeNote: 'Counting range', reset: 'Reset progress', resetSure: 'Tap again to reset', resetDone: 'Progress reset', test: 'Listen', voices: 'Voice', voiceStyle: 'A bright, playful little-girl voice, like in a children’s cartoon.', none: 'not found', noVoice: (l) => `No ${l} voice found: guide phrases are shown but not spoken. Add one in Settings › Accessibility › Spoken Content › Voices.`, progress: (d) => `${d.apples} apples · ${d.stars} stars · ${Object.keys(d.seenWords).length} words · ${Object.keys(d.seenLetters).length}/26 letters`, privacy: 'No accounts, ads or tracking. Progress is saved only on this device.', ios: 'iPad: if there is no sound, check the silent switch and volume, then go back to the start screen and tap Lea or Ines.', on: 'On', off: 'Off', close: 'Close', changePlayer: 'Change player' },
-  pl: { title: 'Dla rodzica', language: 'Język', langNote: 'Menu i podpowiedzi są w tym języku. Słówka do nauki są zawsze po angielsku.', sound: 'Efekty dźwiękowe', music: 'Muzyka', voice: 'Mowa', range: 'Liczby', rangeNote: 'Zakres liczenia', reset: 'Wyzeruj postępy', resetSure: 'Dotknij ponownie, aby wyzerować', resetDone: 'Postępy wyzerowane', test: 'Posłuchaj', voices: 'Głos', voiceStyle: 'Jasny, wesoły głos dziewczynki, jak w bajce.', none: 'brak', noVoice: (l) => `Brak głosu (${l}): podpowiedzi są wyświetlane, ale nie czytane. Dodaj głos w Ustawienia › Dostępność › Zawartość mówiona › Głosy.`, progress: (d) => `${d.apples} jabłek · ${d.stars} gwiazdek · ${Object.keys(d.seenWords).length} słów · ${Object.keys(d.seenLetters).length}/26 liter`, privacy: 'Bez kont, reklam i śledzenia. Postępy zapisują się tylko na tym urządzeniu.', ios: 'iPad: jeśli nie ma dźwięku, sprawdź przełącznik wyciszenia i głośność, a potem wróć do ekranu startowego i dotknij Lei lub Ines.', on: 'Wł.', off: 'Wył.', close: 'Zamknij', changePlayer: 'Zmień gracza' },
-  ru: { title: 'Для родителей', language: 'Язык', langNote: 'Меню и подсказки на этом языке. Слова для изучения всегда на английском.', sound: 'Звуковые эффекты', music: 'Музыка', voice: 'Речь', range: 'Числа', rangeNote: 'Диапазон счёта', reset: 'Сбросить прогресс', resetSure: 'Нажмите ещё раз для сброса', resetDone: 'Прогресс сброшен', test: 'Послушать', voices: 'Голос', voiceStyle: 'Яркий, весёлый голос девочки, как в мультфильме.', none: 'нет', noVoice: (l) => `Нет голоса (${l}): подсказки показываются, но не озвучиваются. Добавьте голос: Настройки › Универсальный доступ › Устный контент › Голоса.`, progress: (d) => `${d.apples} яблок · ${d.stars} звёзд · ${Object.keys(d.seenWords).length} слов · ${Object.keys(d.seenLetters).length}/26 букв`, privacy: 'Без аккаунтов, рекламы и слежки. Прогресс хранится только на этом устройстве.', ios: 'iPad: если нет звука, проверьте переключатель беззвучного режима и громкость, затем вернитесь на стартовый экран и нажмите на Лею или Инес.', on: 'Вкл.', off: 'Выкл.', close: 'Закрыть', changePlayer: 'Сменить игрока' },
+  en: { title: 'For parents', language: 'Language', langNote: 'Menus and the guide’s hints use this language. The words being learnt are always English.', sound: 'Sound effects', music: 'Music', voice: 'Speech', range: 'Numbers', rangeNote: 'Counting range', reset: 'Reset progress', resetSure: 'Tap again to reset', resetDone: 'Progress reset', test: 'Listen', voices: 'Voice', voiceStyle: 'A bright, playful little-girl voice, like in a children’s cartoon.', none: 'not found', noVoice: (l) => `No ${l} voice found: guide phrases are shown but not spoken. Add one in Settings › Accessibility › Spoken Content › Voices.`, progress: (d) => `${d.apples} apples · ${d.stars} stars · ${Object.keys(d.seenWords).length} words · ${Object.keys(d.seenLetters).length}/26 letters`, privacy: 'No accounts, ads or tracking. Progress is saved only on this device.', tours: 'Guide explains the buttons', fsHint: 'Full screen on iPhone: in Safari tap Share, then “Add to Home Screen”, and open Lea Learns from its icon.', ios: 'iPad: if there is no sound, check the silent switch and volume, then go back to the start screen and tap Lea or Ines.', on: 'On', off: 'Off', close: 'Close', changePlayer: 'Change player' },
+  pl: { title: 'Dla rodzica', language: 'Język', langNote: 'Menu i podpowiedzi są w tym języku. Słówka do nauki są zawsze po angielsku.', sound: 'Efekty dźwiękowe', music: 'Muzyka', voice: 'Mowa', range: 'Liczby', rangeNote: 'Zakres liczenia', reset: 'Wyzeruj postępy', resetSure: 'Dotknij ponownie, aby wyzerować', resetDone: 'Postępy wyzerowane', test: 'Posłuchaj', voices: 'Głos', voiceStyle: 'Jasny, wesoły głos dziewczynki, jak w bajce.', none: 'brak', noVoice: (l) => `Brak głosu (${l}): podpowiedzi są wyświetlane, ale nie czytane. Dodaj głos w Ustawienia › Dostępność › Zawartość mówiona › Głosy.`, progress: (d) => `${d.apples} jabłek · ${d.stars} gwiazdek · ${Object.keys(d.seenWords).length} słów · ${Object.keys(d.seenLetters).length}/26 liter`, privacy: 'Bez kont, reklam i śledzenia. Postępy zapisują się tylko na tym urządzeniu.', tours: 'Przewodnik objaśnia przyciski', fsHint: 'Pełny ekran na iPhonie: w Safari dotknij Udostępnij, potem „Do ekranu początkowego” i otwórz Lea Learns z ikony.', ios: 'iPad: jeśli nie ma dźwięku, sprawdź przełącznik wyciszenia i głośność, a potem wróć do ekranu startowego i dotknij Lei lub Ines.', on: 'Wł.', off: 'Wył.', close: 'Zamknij', changePlayer: 'Zmień gracza' },
+  ru: { title: 'Для родителей', language: 'Язык', langNote: 'Меню и подсказки на этом языке. Слова для изучения всегда на английском.', sound: 'Звуковые эффекты', music: 'Музыка', voice: 'Речь', range: 'Числа', rangeNote: 'Диапазон счёта', reset: 'Сбросить прогресс', resetSure: 'Нажмите ещё раз для сброса', resetDone: 'Прогресс сброшен', test: 'Послушать', voices: 'Голос', voiceStyle: 'Яркий, весёлый голос девочки, как в мультфильме.', none: 'нет', noVoice: (l) => `Нет голоса (${l}): подсказки показываются, но не озвучиваются. Добавьте голос: Настройки › Универсальный доступ › Устный контент › Голоса.`, progress: (d) => `${d.apples} яблок · ${d.stars} звёзд · ${Object.keys(d.seenWords).length} слов · ${Object.keys(d.seenLetters).length}/26 букв`, privacy: 'Без аккаунтов, рекламы и слежки. Прогресс хранится только на этом устройстве.', tours: 'Подсказки к кнопкам', fsHint: 'Полный экран на iPhone: в Safari нажмите «Поделиться», затем «На экран „Домой“» и откройте Lea Learns с иконки.', ios: 'iPad: если нет звука, проверьте переключатель беззвучного режима и громкость, затем вернитесь на стартовый экран и нажмите на Лею или Инес.', on: 'Вкл.', off: 'Выкл.', close: 'Закрыть', changePlayer: 'Сменить игрока' },
 };
 const CREDIT = 'Made for Lea by Tomasz Zdankowski';
 
@@ -2852,6 +3101,7 @@ function openParent() {
       <div class="p-row"><span>${t.sound}</span><button class="toggle ${s.sound ? 'on' : ''}" data-k="sound">${s.sound ? t.on : t.off}</button></div>
       <div class="p-row"><span>${t.music}</span><button class="toggle ${s.music ? 'on' : ''}" data-k="music">${s.music ? t.on : t.off}</button></div>
       <div class="p-row"><span>${t.voice}</span><button class="toggle ${s.voice ? 'on' : ''}" data-k="voice">${s.voice ? t.on : t.off}</button></div>
+      <div class="p-row"><span>${t.tours}</span><button class="toggle ${s.tours ? 'on' : ''}" data-k="tours">${s.tours ? t.on : t.off}</button></div>
       <div class="p-block"><div class="p-label">${t.voices}</div>
         <p class="p-voices">${t.voiceStyle}</p>
         ${missing ? `<p class="p-note warn">${t.noVoice(LANGS[L].label)}</p>` : ''}
@@ -2859,6 +3109,7 @@ function openParent() {
       <p class="p-progress">${t.progress(Store.data)}</p>
       <div class="p-row"><button class="p-btn p-player">${t.changePlayer}</button><button class="p-btn danger p-reset">${t.reset}</button></div>
       <p class="p-note">${t.privacy}</p>
+      ${!FS.supported() && !FS.standalone() ? `<p class="p-note p-fs">${t.fsHint}</p>` : ''}
       <p class="p-note">${t.ios}</p>
       <p class="p-credit">${CREDIT} · v${APP_VERSION}</p>
     </div>`;
@@ -2906,7 +3157,7 @@ function openParent() {
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
   }
-  window.LeaLearns = { go, Store, Dog, poseSrc, version: APP_VERSION }; // small handle for tests and debugging
+  window.LeaLearns = { go, Store, Dog, Tour, poseSrc, version: APP_VERSION }; // small handle for tests and debugging
 })();
 
 })();

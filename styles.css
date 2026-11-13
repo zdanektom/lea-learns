@@ -593,3 +593,32 @@ img.lea.wiggle { animation: wiggle .6s; }
 /* landscape: keep the pencil's column (bottom-right) free so the five lollipops never run under it */
 @media (orientation: landscape) { .front { padding-right: calc(clamp(72px, 11vmin, 104px) + .5vw + 18px); } }
 @media (orientation: landscape) and (max-height: 520px) { .lolly { --d: clamp(74px, 19vh, 96px); } .lollies { gap: 8px; } .front { gap: 1vw; } }
+
+/* ---------- v1.4.2: full-screen button (top right, next to the apples and stars) ---------- */
+.fs-btn { flex: none; width: clamp(44px, 6.4vmin, 54px); height: clamp(44px, 6.4vmin, 54px); border-radius: 50%; background: #fff; box-shadow: var(--shadow); display: grid; place-items: center; color: #7e57c2; transition: transform .15s; }
+.fs-btn svg { width: 52%; height: 52%; display: block; }
+.fs-btn.pressed { transform: scale(.9); }
+.fs-btn.on { color: #e53935; }
+.fs-btn[hidden] { display: none; }
+@media (orientation: portrait) and (max-width: 560px) { .gate-ask { top: calc(var(--sat) + max(12vh, 132px)); } } /* clear of the wrapped full-screen button */
+
+/* ---------- v1.4.2: help button + guided tour (ring and arrow placed from the real button's rect by 46-tour.js) ---------- */
+.help-btn { flex: none; width: clamp(44px, 6.4vmin, 54px); height: clamp(44px, 6.4vmin, 54px); border-radius: 50%; background: #fff; box-shadow: var(--shadow); display: grid; place-items: center; color: #ff7043; font-family: inherit; font-weight: 800; font-size: clamp(26px, 4.2vmin, 34px); line-height: 1; padding: 0; transition: transform .15s; }
+.help-btn.pressed { transform: scale(.9); }
+.bar .help-btn { margin-left: auto; }
+.bar .help-btn + .apples-chip { margin-left: 0; }
+.cr-bar .help-btn { margin-left: auto; }
+.guide .guide-lea.tappable { pointer-events: auto; cursor: pointer; }
+.tour { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+.tour.block { pointer-events: auto; }
+.tour-ring { position: fixed; border: 5px solid #ffca28; box-shadow: 0 0 0 4px rgba(255, 255, 255, .9), 0 0 26px 8px rgba(255, 202, 40, .75); animation: tourRing 1.1s ease-in-out infinite; pointer-events: none; transition: left .25s, top .25s, width .25s, height .25s; }
+@keyframes tourRing { 50% { box-shadow: 0 0 0 4px rgba(255, 255, 255, .9), 0 0 40px 16px rgba(255, 202, 40, .55); } }
+.tour-arrow { position: fixed; pointer-events: none; transform: rotate(var(--rot, 0deg)); animation: tourBob .8s ease-in-out infinite; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .25)); transition: left .25s, top .25s; }
+.tour-arrow svg { width: 100%; height: 100%; display: block; }
+@keyframes tourBob { 50% { transform: rotate(var(--rot, 0deg)) translateY(-12px); } }
+.tour-skip { position: fixed; width: 44px; height: 44px; z-index: 2; box-shadow: 0 0 0 3px #ffca28, var(--shadow); } /* sits on the bubble's corner (placed by 46-tour.js) */
+.tour-say { position: fixed; left: 50%; transform: translateX(-50%); max-width: min(86vw, 30em); z-index: 2; pointer-events: none; }
+.tour-say[data-at="top"] { top: calc(var(--sat) + 90px); } .tour-say[data-at="bottom"] { bottom: calc(var(--sab) + 20px); }
+@media (prefers-reduced-motion: reduce) { .tour-ring, .tour-arrow { animation: none; } }
+/* the guide's longer explanations wrap inside the screen */
+.hero-bubble { white-space: normal; width: max-content; max-width: min(calc(96vw - 60px), 22em); }
