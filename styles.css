@@ -109,7 +109,7 @@ svg.art { width: 100%; height: 100%; display: block; overflow: visible; }
 .home-dog { position: absolute; right: calc(var(--sar) + 1vw); bottom: calc(var(--sab) + 23vh); height: clamp(90px, 18vh, 200px); z-index: 2; }
 .home-dog img { height: 100%; width: auto; display: block; filter: drop-shadow(0 8px 8px rgba(0, 0, 0, .18)); }
 .home-dog.in { animation: dogIn .7s cubic-bezier(.2, 1.6, .4, 1) both; }
-@keyframes dogIn { from { transform: translateX(40vw) rotate(20deg); } }
+@keyframes dogIn { from { transform: scale(.2) translateY(30%); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } }
 
 /* Portrait tablet + phone: character stands at the side, signs along the bottom of the cloud. */
 @media (orientation: portrait) {
@@ -589,7 +589,7 @@ img.lea.wiggle { animation: wiggle .6s; }
   .q-row .day-seq .day-name { display: none; }
   .q-row .shape-thing { max-height: 100%; }
 }
-.home-dog { height: clamp(80px, 15vmin, 170px); } /* v1.4.0: placed above the pencil by 50-home.js */
+.home-dog { height: clamp(96px, 15vmin, 170px); transform-origin: 50% 100%; } /* v1.4.0: placed above the pencil by 50-home.js */
 /* landscape: keep the pencil's column (bottom-right) free so the five lollipops never run under it */
 @media (orientation: landscape) { .front { padding-right: calc(clamp(72px, 11vmin, 104px) + .5vw + 18px); } }
 @media (orientation: landscape) and (max-height: 520px) { .lolly { --d: clamp(74px, 19vh, 96px); } .lollies { gap: 8px; } .front { gap: 1vw; } }

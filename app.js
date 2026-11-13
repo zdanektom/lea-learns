@@ -1,7 +1,7 @@
-/* Lea Learns 1.4.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.4.1 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -1791,8 +1791,8 @@ SCREENS.home = ({ hello } = {}) => {
   el._enter = () => {
     placeOnWorld(el); placePen(); later(placePen, 700);
     hello ? talk(T('hi', playerName()), [hiSpeech(), T('whatPlay')]) : talk(T('whatPlay'));
-    // Sometimes the dog is already sitting on the cloud; sometimes he bursts in a bit later.
-    if (Math.random() < 0.45) later(() => { dog.hidden = false; dog.classList.add('in'); }, 2200);
+    // Bacon always sits on the cloud above the pencil (tap him for a gag); sometimes he also bursts in later.
+    later(() => { placeDog(); dog.hidden = false; dog.classList.add('in'); }, 600);
     if (Math.random() < 0.3) later(() => Dog.show(), 9000);
   };
   return el;
