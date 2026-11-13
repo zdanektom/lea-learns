@@ -434,7 +434,7 @@ img.lea.wiggle { animation: wiggle .6s; }
 .new-disc { width: clamp(84px, 14vmin, 150px); max-width: 90%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; color: #fff; background: radial-gradient(circle at 35% 30%, #c79bf2, var(--purple)); box-shadow: inset 0 0 0 6px #fff, var(--shadow); animation: idle 2.6s infinite ease-in-out; }
 .new-disc svg { width: 52%; height: 52%; }
 .picker-new .picker-name { color: var(--purple); }
-.edit-look { position: absolute; left: -6%; top: -2%; width: clamp(60px, 9vmin, 84px); height: clamp(60px, 9vmin, 84px); border-radius: 50%; background: #fff; box-shadow: var(--shadow); display: grid; place-items: center; z-index: 4; animation: idle 3s infinite ease-in-out; }
+.edit-look { position: absolute; right: -16%; top: 30%; width: clamp(60px, 9vmin, 84px); height: clamp(60px, 9vmin, 84px); border-radius: 50%; background: #fff; box-shadow: var(--shadow); display: grid; place-items: center; z-index: 4; animation: idle 3s infinite ease-in-out; }
 .edit-look svg { width: 62%; height: 62%; }
 .swap { border: 4px solid var(--purple); }
 
@@ -470,6 +470,7 @@ img.lea.wiggle { animation: wiggle .6s; }
 .k-hairColour, .k-skin, .k-eyes { --oh: clamp(92px, 13vmin, 130px); }
 .k-gender { --oh: clamp(170px, 30vmin, 260px); }
 .cr-opt img { width: 100%; height: 100%; object-fit: contain; }
+.cr-opt.painted img { filter: drop-shadow(0 3px 3px rgba(120, 60, 80, .2)); }
 .cr-opt.on { box-shadow: inset 0 0 0 5px var(--purple), 0 5px 0 rgba(74, 47, 39, .12); background: #f6efff; }
 .cr-opt.funny::after { content: ''; position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; background: #ffd54f; clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
 .sw { width: auto; height: 74%; aspect-ratio: 1; border-radius: 50%; background: var(--c); box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .12), 0 0 0 4px #fff, 0 0 0 7px #4a2f2733; }
@@ -480,5 +481,7 @@ img.lea.wiggle { animation: wiggle .6s; }
   .cr-show { grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
   .cr-tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .cr-tabs.n4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .cr-tabs.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (orientation: landscape) and (max-height: 520px) { .cr-tab { min-height: 60px; } .cr-tab-l { display: none; } .cr-name { min-height: 50px; font-size: 20px; } }
+@media (orientation: portrait) and (max-width: 520px) { .edit-look { top: auto; bottom: calc(clamp(64px, 11vmin, 100px) + 4px); right: -10%; width: 56px; height: 56px; } } /* phones: stay clear of the house door */

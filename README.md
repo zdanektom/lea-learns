@@ -23,7 +23,7 @@ cd dist && python3 -m http.server 8080   # then open http://localhost:8080
 
 * **Start:** tap Lea or Ines (“Who’s playing?”). This first tap also switches on sound and speech on iPad. The last choice is remembered. You can swap on the home screen with the small round face next to the character.
 * **Create your character:** tap the big purple **+** (“New”) on the start screen. Everything is chosen with pictures and colour swatches: girl or boy, 9 hairstyles, 11 hair colours (including pink, blue, purple, neon green and rainbow), eye colour, face shape, skin tone, body shape (slim, medium, round, tall, small), 17 outfits (dresses, trousers, dungarees, sporty, plus funny costumes: chicken, dinosaur, bunny, teddy bear, banana, pirate, astronaut and superhero) and extras (headband, bow, flower, crown, sun hat, cap, glasses). The dice makes a surprise character, the green tick saves it. Up to 6 own characters can live next to Lea and Ines; open one again with the pencil on the home screen, where a bin button (tap twice) removes it. Girl or boy only changes the starting suggestions; every outfit and hairstyle is always available.
-* **Lea and Ines dress-up:** the pencil next to Lea or Ines on the home screen changes their clothes, hairstyle, hair colour and extras. The round arrow brings back their original look at any time.
+* **Lea and Ines dress-up:** the pencil to the right of Lea or Ines on the home screen dresses them up **in their own painted illustration style**, in every pose: their own dress or 8 painted costumes (chicken, dinosaur, bunny, princess, superhero, pirate, astronaut, banana), and 11 hair colours (including pink, blue, purple, neon green and rainbow) painted onto their real hair. The round arrow brings back their original look at any time.
 * **Home:** the candy house in the clouds. The three big lollipops are the modes, and the heart door also opens Words.
 * **Words:** Food (apple first), Animals, Colours, Home, Nature and Body, 8–10 pictures each. Montessori three-period lesson:
   1. **Look**: “This is … apple”.
@@ -62,8 +62,8 @@ The interface language changes the menus and the guide’s hints. **The vocabula
 
 ```
 index.html  styles.css  manifest.webmanifest  sw.template.js  build.mjs
-src/                 game code (concatenated in order into app.js); 22-avatar.js draws the made-up characters, 52-creator.js is the editor
-assets/character/    Lea, Ines and Bacon (transparent PNGs cut from the approved illustrations)
+src/                 game code (concatenated in order into app.js); 22-avatar.js draws the made-up characters, 24-paint.js dresses up Lea / Ines in their painted style, 52-creator.js is the editor
+assets/character/    Lea, Ines and Bacon (transparent PNGs cut from the approved illustrations); look/ = painted costume variants (all 7 poses), hair/ = hair masks used to recolour hair on the painting
 assets/world/        candy-house backgrounds (landscape + portrait)
 assets/fonts/        Fredoka (Latin) + Nunito (Cyrillic) subsets, SIL OFL 1.1 (see FONTS.txt)
 icons/               app icons from the illustrated Lea

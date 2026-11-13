@@ -1,7 +1,7 @@
-/* Lea Learns 1.3.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.3.1 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -894,6 +894,94 @@ const AV = (() => {
 })();
 
 
+/* ===== src/24-paint.js ===== */
+/* Lea Learns — dress-up for Lea and Ines in their ORIGINAL painted style.
+   Costumes are painted variants of the same illustrations (assets/character/look/<who>-<outfit>-<pose>.webp, all 7 poses).
+   Hair colour is changed on the painted art itself: a per-image hair mask (assets/character/hair/<image>.png) tells
+   which pixels are hair, and those pixels get the new colour while keeping the brush-stroke light and shade. */
+const PAINT = (() => {
+  const OUTFITS = ['original', 'chicken', 'dino', 'bunny', 'princess', 'superhero', 'pirate', 'astronaut', 'banana'];
+  const HAIR = ['original', ...Object.keys(AV.HAIR_COLOURS)];
+  const ORIGINAL_HAIR = { lea: '#c9965f', ines: '#4a2f22' };
+  const base = (who, pose, outfit) => (outfit && outfit !== 'original' ? `assets/character/look/${who}-${outfit}-${pose}.webp` : `assets/character/${who}-${pose}.png`);
+  const maskOf = (who, pose, outfit) => `assets/character/hair/${who}${outfit && outfit !== 'original' ? '-' + outfit : ''}-${pose}.png`;
+  const valid = (l) => {
+    const o = Object.assign({ outfit: 'original', hairColour: 'original' }, l || {});
+    if (!OUTFITS.includes(o.outfit)) o.outfit = 'original';   // older (1.3.0) looks used vector outfits: fall back to the painted dress
+    if (!HAIR.includes(o.hairColour)) o.hairColour = 'original';
+    return { outfit: o.outfit, hairColour: o.hairColour };
+  };
+  const isOriginal = (l) => { const v = valid(l); return v.outfit === 'original' && v.hairColour === 'original'; };
+  const cache = new Map(), pending = new Map();
+  const key = (who, pose, l) => `${who}|${pose}|${l.outfit}|${l.hairColour}`;
+  const load = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16) / 255);
+  function rgb2hsl(r, g, b) {
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+    if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; }
+    return [h, s, l];
+  }
+  function hsl2rgb(h, s, l) {
+    if (!s) return [l, l, l];
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    const f = (t) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+    return [f(h + 1 / 3), f(h), f(h - 1 / 3)];
+  }
+  /* Recolour: keep each hair pixel's lightness relative to the average hair lightness, swap hue and saturation for the new colour. */
+  async function render(who, pose, l) {
+    const [img, mimg] = await Promise.all([load(base(who, pose, l.outfit)), load(maskOf(who, pose, l.outfit))]);
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(mimg, 0, 0, W, H); const m = x.getImageData(0, 0, W, H).data;
+    x.clearRect(0, 0, W, H); x.drawImage(img, 0, 0); const id = x.getImageData(0, 0, W, H), d = id.data;
+    let sw = 0, sl = 0, y0 = H, y1 = 0;
+    for (let i = 0, n = W * H; i < n; i++) { const a = m[i * 4] / 255; if (a > 0.5) { const p = i * 4; sl += a * (0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2]) / 255; sw += a; const yy = (i / W) | 0; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; } }
+    if (!sw) return base(who, pose, l.outfit);
+    const meanL = sl / sw, rainbow = l.hairColour === 'rainbow';
+    const [th, ts, tl] = rainbow ? [0, 0.85, 0.6] : rgb2hsl(...hex(AV.HAIR_COLOURS[l.hairColour]));
+    const k = tl < 0.3 ? 0.55 : 0.85, span = Math.max(1, y1 - y0);
+    for (let i = 0, n = W * H; i < n; i++) {
+      const a = m[i * 4] / 255; if (a < 0.02) continue;
+      const p = i * 4, r = d[p] / 255, g = d[p + 1] / 255, b = d[p + 2] / 255;
+      const L = 0.299 * r + 0.587 * g + 0.114 * b;
+      const nl = Math.min(0.96, Math.max(0.04, tl + (L - meanL) * k));
+      const hh = rainbow ? (((i / W) | 0) - y0) / span * 0.83 : th;
+      const [nr, ng, nb] = hsl2rgb(hh, ts * (1 - Math.max(0, nl - 0.8)), nl);
+      d[p] = (r * (1 - a) + nr * a) * 255; d[p + 1] = (g * (1 - a) + ng * a) * 255; d[p + 2] = (b * (1 - a) + nb * a) * 255;
+    }
+    x.putImageData(id, 0, 0);
+    const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
+    return blob ? URL.createObjectURL(blob) : c.toDataURL('image/png');
+  }
+  /* Synchronous answer for <img src>: the finished variant if ready, else the right outfit with original hair while the colour is painted. */
+  function src(who, pose, look) {
+    const l = valid(look);
+    if (l.hairColour === 'original') return base(who, pose, l.outfit);
+    const kk = key(who, pose, l);
+    if (cache.has(kk)) return cache.get(kk);
+    prepare(who, l, [pose]).then(refresh);
+    return base(who, pose, l.outfit);
+  }
+  function prepare(who, look, poses = POSES) {
+    const l = valid(look);
+    if (l.hairColour === 'original') return Promise.resolve();
+    return Promise.all(poses.map((pose) => {
+      const kk = key(who, pose, l);
+      if (cache.has(kk)) return null;
+      if (!pending.has(kk)) pending.set(kk, render(who, pose, l).then((u) => { cache.set(kk, u); pending.delete(kk); }).catch(() => pending.delete(kk)));
+      return pending.get(kk);
+    }));
+  }
+  /* Repaint any character image on screen that is still showing a placeholder. */
+  function refresh() {
+    $$('img.lea[data-who][data-pose]').forEach((im) => { const s = poseSrc(im.dataset.pose, im.dataset.who); if (im.getAttribute('src') !== s) im.src = s; });
+  }
+  return { OUTFITS, HAIR, ORIGINAL_HAIR, valid, isOriginal, src, prepare, base, render };
+})();
+
+
 /* ===== src/30-audio.js ===== */
 /* Speech (pre-recorded clips, speechSynthesis fallback), Web Audio sound effects,
    and a looping original background music bed. Prefer a pleasant girl's voice. */
@@ -1254,7 +1342,10 @@ const playerSay = () => (lang() === 'en' && isBuiltin(player()) ? NAMES[player()
 /* Speech lines that contain the player's name: recorded clips for Lea / Ines, device voice for a custom name. */
 const hiSpeech = () => (isBuiltin(player()) ? T('hi', playerSay()) : [T('hello'), NAME(playerName() + '!')]);
 const wellDoneSpeech = () => (isBuiltin(player()) ? T('wellDone', playerSay()) : [T('praise')[1], NAME(playerName() + '!')]);
-const poseSrc = (pose, who = player()) => { const l = lookOf(who); return l ? AV.src(l, pose) : `assets/character/${isBuiltin(who) ? who : 'lea'}-${pose}.png`; };
+const poseSrc = (pose, who = player()) => {
+  if (isBuiltin(who)) { const l = Store.look(who); return l ? PAINT.src(who, pose, l) : `assets/character/${who}-${pose}.png`; } // painted art, same style
+  const c = Store.char(who); return c ? AV.src(c, pose) : `assets/character/lea-${pose}.png`;
+};
 const leaImg = (pose, cls = '', who = player()) => `<img class="lea ${cls}" src="${poseSrc(pose, who)}" alt="${playerName(who)}" draggable="false" data-pose="${pose}" data-who="${who}">`;
 
 function h(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
@@ -1530,7 +1621,7 @@ SCREENS.gate = () => {
     Audio.sfx('open');
     Store.set('player', b.dataset.who);
     b.classList.add('chosen'); el.classList.add('picked');
-    $('img', b).src = poseSrc('jump', b.dataset.who);
+    const pi = $('img', b); pi.src = poseSrc('jump', b.dataset.who); pi.dataset.pose = 'jump';
     setTimeout(() => go('home', { hello: true }), 500);
   }, { sound: null }));
   el._layout = () => placeOnWorld(el);
@@ -1591,8 +1682,9 @@ SCREENS.home = ({ hello } = {}) => {
 
 /* ===== src/52-creator.js ===== */
 /* Lea Learns — "Create your character": a live dress-up editor. Icons and swatches, no reading needed.
-   New characters are saved next to Lea and Ines; Lea and Ines themselves can change outfit, hair and extras
-   and go back to their original illustrated look with one tap. */
+   New characters are saved next to Lea and Ines. Lea and Ines keep their original painted illustration style:
+   their costumes are painted variants of the same art and hair colour is recoloured on the painting (see 24-paint.js);
+   one tap brings back their original look. */
 const CRL = {
   en: {
     cat: { gender: 'Girl / boy', hair: 'Hair', hairColour: 'Colour', eyes: 'Eyes', face: 'Face', skin: 'Skin', body: 'Body', outfit: 'Clothes', acc: 'Extras' },
@@ -1605,6 +1697,7 @@ const CRL = {
     body: { slim: 'Slim', average: 'Medium', round: 'Round', tall: 'Tall', small: 'Small' },
     outfit: { flowerPink: 'Pink flower dress', flowerTeal: 'Teal daisy dress', appleDress: 'Apple dress', princess: 'Princess dress', polka: 'Polka-dot dress', rainbow: 'Rainbow dress', tee: 'T-shirt and trousers', dungarees: 'Dungarees', sporty: 'Sporty', pirate: 'Pirate', superhero: 'Superhero', astronaut: 'Astronaut', chicken: 'Chicken', dino: 'Dinosaur', bunny: 'Bunny', bear: 'Teddy bear', banana: 'Banana' },
     acc: { none: 'Nothing', headband: 'Headband', bow: 'Bow', flower: 'Flower', crown: 'Crown', hat: 'Sun hat', cap: 'Cap', glasses: 'Glasses' },
+    orig: { outfit: 'Her own dress', hair: 'Her own hair' },
     name: 'Name', save: 'Save', dice: 'Surprise me', reset: 'Original look', del: 'Delete', delSure: 'Tap again to delete', back: 'Back',
   },
   pl: {
@@ -1618,6 +1711,7 @@ const CRL = {
     body: { slim: 'Szczupła', average: 'Średnia', round: 'Pulchna', tall: 'Wysoka', small: 'Niska' },
     outfit: { flowerPink: 'Różowa sukienka w kwiatki', flowerTeal: 'Morska sukienka w stokrotki', appleDress: 'Sukienka w jabłuszka', princess: 'Suknia księżniczki', polka: 'Sukienka w kropki', rainbow: 'Tęczowa sukienka', tee: 'Koszulka i spodnie', dungarees: 'Ogrodniczki', sporty: 'Strój sportowy', pirate: 'Pirat', superhero: 'Superbohater', astronaut: 'Astronauta', chicken: 'Kurczak', dino: 'Dinozaur', bunny: 'Króliczek', bear: 'Miś', banana: 'Banan' },
     acc: { none: 'Nic', headband: 'Opaska', bow: 'Kokarda', flower: 'Kwiatek', crown: 'Korona', hat: 'Kapelusz', cap: 'Czapka z daszkiem', glasses: 'Okulary' },
+    orig: { outfit: 'Jej sukienka', hair: 'Jej włosy' },
     name: 'Imię', save: 'Zapisz', dice: 'Losuj', reset: 'Oryginalny wygląd', del: 'Usuń', delSure: 'Dotknij ponownie, aby usunąć', back: 'Wróć',
   },
   ru: {
@@ -1631,6 +1725,7 @@ const CRL = {
     body: { slim: 'Стройная', average: 'Средняя', round: 'Пухленькая', tall: 'Высокая', small: 'Маленькая' },
     outfit: { flowerPink: 'Розовое платье в цветочек', flowerTeal: 'Бирюзовое платье с ромашками', appleDress: 'Платье с яблочками', princess: 'Платье принцессы', polka: 'Платье в горошек', rainbow: 'Радужное платье', tee: 'Футболка и брюки', dungarees: 'Комбинезон', sporty: 'Спортивная форма', pirate: 'Пират', superhero: 'Супергерой', astronaut: 'Космонавт', chicken: 'Цыплёнок', dino: 'Динозавр', bunny: 'Зайчик', bear: 'Мишка', banana: 'Банан' },
     acc: { none: 'Ничего', headband: 'Ободок', bow: 'Бантик', flower: 'Цветочек', crown: 'Корона', hat: 'Шляпка', cap: 'Кепка', glasses: 'Очки' },
+    orig: { outfit: 'Её платье', hair: 'Её волосы' },
     name: 'Имя', save: 'Сохранить', dice: 'Случайно', reset: 'Как было', del: 'Удалить', delSure: 'Нажмите ещё раз, чтобы удалить', back: 'Назад',
   },
 };
@@ -1660,9 +1755,8 @@ SCREENS.creator = ({ id = 'new', from } = {}) => {
   const isNew = id === 'new' || (!isBuiltin(id) && !Store.char(id));
   const builtin = isBuiltin(id);
   const back = from || (isNew ? 'gate' : 'home');
-  let p = builtin ? AV.valid(Store.look(id) || AV.PRESETS[id]) : isNew ? AV.valid(Object.assign({}, AV.DEFAULT, { name: pick(AV.GIRL_NAMES) })) : AV.valid(Store.char(id));
-  let original = builtin && !Store.look(id); // Lea / Ines still in their illustrated look
-  const cats = builtin ? ['outfit', 'hair', 'hairColour', 'acc'] : ['gender', 'hair', 'hairColour', 'eyes', 'face', 'skin', 'body', 'outfit', 'acc'];
+  let p = builtin ? PAINT.valid(Store.look(id)) : isNew ? AV.valid(Object.assign({}, AV.DEFAULT, { name: pick(AV.GIRL_NAMES) })) : AV.valid(Store.char(id));
+  const cats = builtin ? ['outfit', 'hairColour'] : ['gender', 'hair', 'hairColour', 'eyes', 'face', 'skin', 'body', 'outfit', 'acc'];
   let tab = cats[0];
   const t = CR();
   const el = h(`<section class="creator" lang="${lang()}">
@@ -1692,11 +1786,18 @@ SCREENS.creator = ({ id = 'new', from } = {}) => {
   const img = $('.cr-img', el), opts = $('.cr-opts', el), nameIn = $('.cr-name', el);
   if (nameIn) nameIn.value = p.name;
   const hop = () => { img.classList.remove('hop'); void img.offsetWidth; img.classList.add('hop'); };
+  const opt = (k) => (builtin ? (k === 'outfit' ? PAINT.OUTFITS : PAINT.HAIR) : CR_OPTIONS[k]);
+  const label = (k, v) => (v === 'original' ? t.orig[k === 'outfit' ? 'outfit' : 'hair'] : t[k][v]);
   const paint = () => {
-    img.src = original ? `assets/character/${id}-front.png` : AV.src(p, 'front');
+    if (builtin) {
+      const want = p; img.src = PAINT.src(id, 'front', p);
+      PAINT.prepare(id, p, ['front']).then(() => { if (want === p) img.src = PAINT.src(id, 'front', p); });
+    } else img.src = AV.src(p, 'front');
     $$('.cr-tab', el).forEach((b) => { b.classList.toggle('on', b.dataset.cat === tab); $('.cr-tab-ic', b).innerHTML = crTabIcon(b.dataset.cat, p); });
   };
   const thumb = (k, v) => {
+    if (builtin && k === 'outfit') return `<img src="${PAINT.base(id, 'front', v)}" alt="" draggable="false">`;
+    if (builtin && k === 'hairColour' && v === 'original') return `<span class="sw" style="--c:${PAINT.ORIGINAL_HAIR[id]}"></span>`;
     const q = Object.assign({}, k === 'gender' ? AV.withGender(p, v) : p, k === 'gender' ? {} : { [k]: v });
     if ((k === 'hair' || k === 'face' || k === 'acc') && HOODED.includes(q.outfit)) q.outfit = q.gender === 'boy' ? 'tee' : 'appleDress';
     if (k === 'hairColour') return `<span class="sw ${v === 'rainbow' ? 'sw-rainbow' : ''}" style="--c:${AV.HAIR_COLOURS[v]}"></span>`;
@@ -1708,13 +1809,12 @@ SCREENS.creator = ({ id = 'new', from } = {}) => {
   const renderOpts = () => {
     const cur = tab === 'gender' ? p.gender : p[tab];
     opts.className = `cr-opts scroll k-${tab}`;
-    opts.innerHTML = CR_OPTIONS[tab].map((v) => `<button class="cr-opt ${v === cur && !original ? 'on' : ''} ${AV.FUNNY.includes(v) ? 'funny' : ''}" data-v="${v}" aria-label="${t[tab][v]}" aria-pressed="${v === cur}">${thumb(tab, v)}</button>`).join('');
+    opts.innerHTML = opt(tab).map((v) => `<button class="cr-opt ${v === cur ? 'on' : ''} ${AV.FUNNY.includes(v) ? 'funny' : ''} ${builtin && tab === 'outfit' ? 'painted' : ''}" data-v="${v}" aria-label="${label(tab, v)}" aria-pressed="${v === cur}">${thumb(tab, v)}</button>`).join('');
     opts.scrollTop = 0;
     $$('.cr-opt', opts).forEach((b) => onTap(b, () => {
       const v = b.dataset.v;
       p = tab === 'gender' ? AV.withGender(p, v) : Object.assign({}, p, { [tab]: v });
       if (tab === 'gender' && nameIn) nameIn.value = p.name;
-      original = false;
       paint(); hop(); renderOpts();
       if (v === 'chicken') Audio.say(T('cluck')); else if (v === 'dino') Audio.say(T('roar'));
     }, { sound: 'pop' }));
@@ -1727,12 +1827,12 @@ SCREENS.creator = ({ id = 'new', from } = {}) => {
   }
   onTap($('.cr-back', el), () => go(back), { sound: 'whoosh' });
   onTap($('.cr-dice', el), () => {
-    if (builtin) p = AV.valid(Object.assign({}, p, { outfit: pick(AV.OUTFITS), hair: pick(AV.HAIR), hairColour: pick(Object.keys(AV.HAIR_COLOURS)), acc: pick(AV.ACCS) }));
+    if (builtin) p = PAINT.valid({ outfit: pick(PAINT.OUTFITS.slice(1)), hairColour: pick(PAINT.HAIR.slice(1)) });
     else { p = AV.random(); if (nameIn) nameIn.value = p.name; }
-    original = false; paint(); hop(); renderOpts(); Audio.say(T('surprise'));
+    paint(); hop(); renderOpts(); Audio.say(T('surprise'));
   }, { sound: 'sparkle' });
   const reset = $('.cr-reset', el);
-  if (reset) onTap(reset, () => { Store.setLook(id, null); p = AV.valid(AV.PRESETS[id]); original = true; paint(); hop(); renderOpts(); Audio.say(T('likeBefore')); }, { sound: 'whoosh' });
+  if (reset) onTap(reset, () => { Store.setLook(id, null); p = PAINT.valid(null); paint(); hop(); renderOpts(); Audio.say(T('likeBefore')); }, { sound: 'whoosh' });
   const del = $('.cr-del', el);
   if (del) { let armed = false; onTap(del, () => {
     if (!armed) { armed = true; del.classList.add('armed'); del.setAttribute('aria-label', t.delSure); setTimeout(() => { armed = false; del.classList.remove('armed'); }, 3500); return; }
@@ -1741,17 +1841,20 @@ SCREENS.creator = ({ id = 'new', from } = {}) => {
   onTap($('.cr-save', el), () => {
     if (App.busy) return; App.busy = true;
     let who = id;
-    if (builtin) { if (!original) Store.setLook(id, Object.assign({}, AV.valid(p), { name: '' })); }
+    if (builtin) Store.setLook(id, PAINT.isOriginal(p) ? null : PAINT.valid(p));
     else {
       const name = (nameIn ? nameIn.value : p.name).replace(/[<>&"]/g, '').trim().slice(0, 14) || (p.gender === 'boy' ? AV.BOY_NAMES[0] : AV.GIRL_NAMES[0]);
       who = isNew ? 'c-' + Date.now().toString(36) + Math.floor(Math.random() * 1e3).toString(36) : id;
       Store.saveChar(Object.assign(AV.valid(p), { name, id: who }));
     }
     Store.set('player', who);
+    const ready = builtin ? PAINT.prepare(id, Store.look(id) || {}) : Promise.resolve();
     const superWord = T('praise').find((x) => /^(Super|Супер)/.test(x)) || T('praise')[0];
-    celebrate({ text: superWord, pose: 'jump' });
-    Audio.say([superWord, T('letsPlay')]);
-    later(() => go('home', { hello: true }), 1600);
+    ready.then(() => {
+      celebrate({ text: superWord, pose: 'jump' });
+      Audio.say([superWord, T('letsPlay')]);
+      later(() => go('home', { hello: true }), 1600);
+    });
   }, { sound: 'pop' });
   el._enter = () => Audio.say(builtin ? [T('editLook'), T('crAsk')[tab]] : T('creator'));
   paint(); renderOpts();
@@ -2399,6 +2502,7 @@ function openParent() {
   const firstTouch = () => { Audio.unlock(); document.removeEventListener('touchend', firstTouch, true); document.removeEventListener('click', firstTouch, true); };
   document.addEventListener('touchend', firstTouch, true); document.addEventListener('click', firstTouch, true);
   // Warm the character images so pose changes are instant.
+  BUILTIN.forEach((who) => { const l = Store.look(who); if (l) PAINT.prepare(who, l); });
   Object.keys(CHARACTERS).forEach((who) => POSES.forEach((p) => { const i = new Image(); i.src = poseSrc(p, who); }));
   document.documentElement.lang = lang();
   // Rotation / resize: CSS does the layout; screens with canvases or painted hotspots re-measure.
@@ -2410,7 +2514,7 @@ function openParent() {
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
   }
-  window.LeaLearns = { go, Store, Dog, version: APP_VERSION }; // small handle for tests and debugging
+  window.LeaLearns = { go, Store, Dog, poseSrc, version: APP_VERSION }; // small handle for tests and debugging
 })();
 
 })();
