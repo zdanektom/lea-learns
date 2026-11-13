@@ -622,3 +622,31 @@ img.lea.wiggle { animation: wiggle .6s; }
 @media (prefers-reduced-motion: reduce) { .tour-ring, .tour-arrow { animation: none; } }
 /* the guide's longer explanations wrap inside the screen */
 .hero-bubble { white-space: normal; width: max-content; max-width: min(calc(96vw - 60px), 22em); }
+
+/* ---------- v1.5.1: answers never cover the question ----------
+   Portrait: one row of answers, each card sized from the space that is really left (short in-app
+   browsers such as Messenger's), never wrapping into a second row over the prompt, sequence or guide. */
+.quiz-area { container-type: size; }
+.choice { container-type: inline-size; }
+.ch-day b { font-size: min(clamp(14px, 3vmin, 28px), 14cqi); }
+.ch-letter { font-size: min(22vmin, 170px, 62cqi); }
+.ch-num { font-size: min(14vmin, 120px, 46cqi); }
+@media (orientation: portrait) {
+  .choices { --cg: clamp(10px, 3vmin, 36px); gap: var(--cg); flex-wrap: nowrap; row-gap: 0; }
+  .choices .choice, .choices.nums .choice {
+    flex: 0 0 auto; aspect-ratio: auto; max-height: none;
+    width: min(calc((100cqw - 2 * var(--cg)) / 3), 100cqh, 300px, 36vmin); height: min(calc((100cqw - 2 * var(--cg)) / 3), 100cqh, 300px, 36vmin);
+  }
+  .choices:has(> .choice:nth-child(4)) .choice { width: min(calc((100cqw - 3 * var(--cg)) / 4), 100cqh, 260px); height: min(calc((100cqw - 3 * var(--cg)) / 4), 100cqh, 260px); }
+  .choices.nums .choice .dots { display: none; }
+  .choices .choice { padding: 8px; }
+  .choices .ch-letter { font-size: min(22vmin, 170px, 78cqi); }
+  .choices .ch-num { font-size: min(22vmin, 120px, 70cqi); }
+  .choices.days .choice { padding: 0; }
+}
+@container (max-height: 150px) { .ch-day .day-art { width: 56%; } }
+/* v1.5.1: wide poses (sitting) stay inside the guide column instead of reaching under the game */
+@media (orientation: landscape) {
+  .activity .guide-lea { max-width: 100%; }
+  .activity .guide-lea img { max-width: 100%; object-fit: contain; object-position: 50% 100%; }
+}

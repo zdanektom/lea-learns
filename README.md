@@ -33,7 +33,7 @@ In the browser, the small square button in the top-right corner (next to the app
   1. **Look**: “This is … apple”.
   2. **Find**: “Show me … apple”. Tap the right one of 3 big pictures.
   3. **Say**: “What is this?” The child says it, then taps to hear it.
-* **ABC:** A–Z. **Look** plays the sound first, then the letter, then several picture words (B → ball, banana, bed, book). **Find**: “Show me the letter B”. **Trace** is a sandpaper-style letter (Aa) for a fat finger, and it keeps working after rotation.
+* **ABC:** A–Z. **Look** says the letter’s English name, then several picture words (B → ball, banana, bed, book). **Find**: “Show me the letter B”. **Trace** is a sandpaper-style letter (Aa) for a fat finger, and it keeps working after rotation.
 * **Numbers:** **Count** 1–20 (1–30 in the parent corner), shown as real objects. Above 10, the objects sit in ten-frames. **How many?** lets the child tap each object to count it aloud. **+ −** shows picture groups first and numerals a moment later. Sums go up to 20, or 30 when the 1–30 range is on.
 * **Shapes:** circle, square, triangle, rectangle, oval, star, heart, diamond, pentagon and hexagon, each a friendly coloured picture with its English name spoken. **Look** shows every shape and, for most shapes, real things with that shape (the ball is a circle, the pizza is a triangle). **Find**: “Show me … triangle”. **Match**: a real thing appears (clock, window, pizza, door, egg, kite…) and the child taps its shape.
 * **Days:** Monday to Sunday, each with its own colour and a little routine picture. **Look** highlights today from the device date (“Today is Friday!”). **Sing** lights up the days one by one as the guide sings the week. **What comes next?** shows two days and a gap to fill.
@@ -52,7 +52,7 @@ In the browser, the small square button in the top-right corner (next to the app
 * change player,
 * reset progress (tap twice).
 
-The interface language changes the menus and the guide’s hints. **The vocabulary being learnt is always English** (apple is always “apple”, letter sounds are English phonics).
+The interface language changes the menus and the guide’s hints. **The vocabulary being learnt is always English** (apple is always “apple”, letters are English letter names).
 
 ## Speech and sound
 
@@ -63,7 +63,7 @@ The interface language changes the menus and the guide’s hints. **The vocabula
   * Safari only allows audio and speech after a tap, so the first tap on Lea or Ines unlocks both.
   * If there is no sound, check the silent switch and the volume, then go back to the start screen and tap a character again.
   * Better voices can be downloaded in *Settings › Accessibility › Spoken Content › Voices*.
-  * Device voices say phonics approximately. For short vowels the picture word carries the sound.
+  * The picture words carry each letter’s sound.
 
 ## Project layout
 

@@ -1,7 +1,7 @@
-/* Lea Learns 1.5.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.5.1 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.1';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -2435,12 +2435,12 @@ function wordSay(el, stage, cat) {
 
 
 /* ===== src/70-abc.js ===== */
-/* Lea Learns — ABC. Montessori order: the sound first, then the letter, then real words; Find (period 2) and sandpaper-style Trace. */
+/* Lea Learns — ABC. The letter (English letter name), then real words; Find (period 2) and sandpaper-style Trace.
+   No separate phonics syllables: spoken by a voice they came out as odd non-words, so the words carry the sound. */
 const letterColour = (i) => LETTER_COLOURS[i % LETTER_COLOURS.length];
 const letterWords = (L) => LETTER_WORDS[L.l] || [L.pic];
 const letterSpeech = (L) => {
   const parts = [];
-  if (!SOUND_VIA_WORD.has(L.sound)) parts.push(EN(`${L.sound}, ${L.sound}.`));
   parts.push(T('thisLetter'), EN(L.l + '.'));
   letterWords(L).forEach((k) => parts.push(EN(spoken(k))));
   return parts;
@@ -2598,7 +2598,7 @@ function traceView(el, stage, start) {
     const praise = tPick('praise');
     celebrate({ text: L().l + L().l.toLowerCase() });
     setGuide(pick(['jump', 'cheer']), praise);
-    Audio.say([praise, ...letterSpeech(L()).slice(0, SOUND_VIA_WORD.has(L().sound) ? 0 : 1), EN(L().l)]);
+    Audio.say([praise, EN(L().l + '.')]);
     Dog.maybe();
     later(() => load(idx + 1), 3000 + Dog.extra());
   }
@@ -2606,7 +2606,7 @@ function traceView(el, stage, start) {
     idx = (i + 26) % 26; strokes = []; done = false;
     setup();
     setGuide('point', `${T('traceHint')}`);
-    Audio.say([T('traceHint'), ...(SOUND_VIA_WORD.has(L().sound) ? [] : [EN(`${L().sound}.`)]), EN(L().l)]);
+    Audio.say([T('traceHint'), EN(L().l + '.')]);
   }
   onTap($('.tr-prev', wrap), () => load(idx - 1), { sound: 'whoosh' });
   onTap($('.tr-next', wrap), () => load(idx + 1), { sound: 'whoosh' });
