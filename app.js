@@ -1,7 +1,7 @@
-/* Lea Learns 1.3.2 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.4.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.3.2';
+const APP_VERSION = '1.4.0';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -36,7 +36,7 @@ const Store = (() => {
 /* Lea Learns: learning content. */
 const APP_NAME = 'Lea Learns';
 /* Playable characters (illustrated only). `say` is how the device voice should pronounce the name. */
-const CHARACTERS = { lea: {}, ines: {} };
+const CHARACTERS = { lea: {}, ines: {}, leo: {} };
 const CATEGORIES = [
   { id: 'food', icon: 'apple', colour: '#e53935', items: ['apple', 'banana', 'orange', 'strawberry', 'grapes', 'carrot', 'egg', 'cake', 'watermelon', 'icecream'] },
   { id: 'animals', icon: 'cat', colour: '#f59e0b', items: ['cat', 'dog', 'duck', 'fish', 'cow', 'pig', 'frog', 'lion', 'zebra'] },
@@ -56,6 +56,7 @@ const WORDS = {
   van: 'van', xylophone: 'xylophone', yoyo: 'yo-yo', queen: 'queen', igloo: 'igloo',
   ant: 'ant', gift: 'gift', jam: 'jam', kite: 'kite', nest: 'nest', octopus: 'octopus', pear: 'pear', vase: 'vase', whale: 'whale', zero: 'zero', insect: 'insect',
 };
+Object.assign(WORDS, { clock: 'clock', window: 'window', pizza: 'pizza', door: 'door', starfish: 'starfish', cookie: 'cookie' });
 const SPOKEN = { yoyo: 'yo yo', 'colour:red': 'red', icecream: 'ice cream' };
 const word = (k) => WORDS[k] || k;
 const spoken = (k) => SPOKEN[k] || word(k);
@@ -91,6 +92,30 @@ const COUNT_THINGS = [
   { k: 'flower', one: 'flower', many: 'flowers' }, { k: 'fish', one: 'fish', many: 'fish' }, { k: 'orange', one: 'orange', many: 'oranges' },
 ];
 
+/* v1.4.0 — Shapes. The first eight are the everyday ones used in the games; pentagon and hexagon are extra cards. */
+const SHAPES = ['circle', 'square', 'triangle', 'rectangle', 'oval', 'star', 'heart', 'diamond', 'pentagon', 'hexagon'];
+const CORE_SHAPES = SHAPES.slice(0, 8);
+const shapeColour = (k) => SHAPE_DEFS[k][0];
+/* Real things a child knows, and their shape (Montessori: from the object to the abstract shape). */
+const SHAPE_THINGS = [
+  ['ball', 'circle'], ['orange', 'circle'], ['clock', 'circle'], ['gift', 'square'], ['window', 'square'],
+  ['pizza', 'triangle'], ['book', 'rectangle'], ['door', 'rectangle'], ['egg', 'oval'],
+  ['starfish', 'star'], ['cookie', 'heart'], ['kite', 'diamond'],
+];
+
+/* v1.4.0 — Days of the week. Each day keeps one colour everywhere, plus a small picture "routine" cue. */
+const DAYS = [
+  { k: 'Monday', c: '#e53935', cue: 'book' },
+  { k: 'Tuesday', c: '#fb8c00', cue: 'ball' },
+  { k: 'Wednesday', c: '#f4b400', cue: 'flower' },
+  { k: 'Thursday', c: '#43a047', cue: 'xylophone' },
+  { k: 'Friday', c: '#1e88e5', cue: 'pizza' },
+  { k: 'Saturday', c: '#8e44ad', cue: 'icecream' },
+  { k: 'Sunday', c: '#ec407a', cue: 'sun' },
+];
+/* Index into DAYS for today (Monday first, as in the UK and Poland). */
+const todayIndex = () => (new Date().getDay() + 6) % 7;
+
 
 /* ===== src/15-i18n.js ===== */
 /* Lea Learns — interface and guide language (pl / en / ru). The English words being taught are never translated. */
@@ -98,7 +123,8 @@ const LANGS = { pl: { label: 'Polski', voice: 'pl' }, en: { label: 'English', vo
 const STR = {
   en: {
     creator: 'Create your character!', newChar: 'New', editLook: 'Change my look', surprise: 'Surprise!', cluck: 'Cluck cluck!', roar: 'Roar!', likeBefore: 'Just like before!',
-    crAsk: { gender: 'Girl or boy?', hair: 'Choose a hairstyle!', hairColour: 'Choose a hair colour!', eyes: 'Choose an eye colour!', face: 'Choose a face shape!', skin: 'Choose a skin colour!', body: 'Choose a body shape!', outfit: 'Choose an outfit!', acc: 'Choose something extra!', name: 'What’s my name?' },
+    crAsk: { base: 'Who will you be?', gender: 'Girl or boy?', hair: 'Choose a hairstyle!', hairColour: 'Choose a hair colour!', eyes: 'Choose an eye colour!', face: 'Choose a face shape!', skin: 'Choose a skin colour!', body: 'Choose a body shape!', outfit: 'Choose an outfit!', acc: 'Choose something extra!', name: 'What’s my name?' },
+    shapes: 'Shapes', days: 'Days', match: 'Match', sing: 'Sing', today: 'Today', whatShape: 'What shape is it?', learnShapes: 'Let’s learn shapes!', tapShape: 'Tap a shape!', daysWeek: 'Days of the week!', singDays: 'Let’s sing the days!', whatNext: 'What comes next?', tapDay: 'Tap a day!',
     words: 'Words', abc: 'ABC', numbers: 'Numbers', whosPlaying: 'Who’s playing?',
     food: 'Food', animals: 'Animals', colours: 'Colours', home: 'Home', nature: 'Nature', body: 'Body',
     look: 'Look', find: 'Find', sayIt: 'Say', trace: 'Trace', count: 'Count', howMany: 'How many?', sums: '+  −',
@@ -113,7 +139,8 @@ const STR = {
   },
   pl: {
     creator: 'Stwórz swoją postać!', newChar: 'Nowa postać', editLook: 'Zmień wygląd', surprise: 'Niespodzianka!', cluck: 'Ko ko ko!', roar: 'Wrrr!', likeBefore: 'Jak dawniej!',
-    crAsk: { gender: 'Dziewczynka czy chłopiec?', hair: 'Wybierz fryzurę!', hairColour: 'Wybierz kolor włosów!', eyes: 'Wybierz kolor oczu!', face: 'Wybierz kształt buzi!', skin: 'Wybierz kolor skóry!', body: 'Wybierz sylwetkę!', outfit: 'Wybierz ubranie!', acc: 'Wybierz dodatek!', name: 'Jak mam na imię?' },
+    crAsk: { base: 'Kim będziesz?', gender: 'Dziewczynka czy chłopiec?', hair: 'Wybierz fryzurę!', hairColour: 'Wybierz kolor włosów!', eyes: 'Wybierz kolor oczu!', face: 'Wybierz kształt buzi!', skin: 'Wybierz kolor skóry!', body: 'Wybierz sylwetkę!', outfit: 'Wybierz ubranie!', acc: 'Wybierz dodatek!', name: 'Jak mam na imię?' },
+    shapes: 'Kształty', days: 'Dni', match: 'Dopasuj', sing: 'Śpiewaj', today: 'Dziś', whatShape: 'Jaki to kształt?', learnShapes: 'Poznajmy kształty!', tapShape: 'Dotknij kształtu!', daysWeek: 'Dni tygodnia!', singDays: 'Zaśpiewajmy dni!', whatNext: 'Co jest dalej?', tapDay: 'Dotknij dnia!',
     words: 'Słowa', abc: 'ABC', numbers: 'Liczby', whosPlaying: 'Kto gra?',
     food: 'Jedzenie', animals: 'Zwierzęta', colours: 'Kolory', home: 'Dom', nature: 'Przyroda', body: 'Ciało',
     look: 'Patrz', find: 'Pokaż', sayIt: 'Powiedz', trace: 'Rysuj', count: 'Liczenie', howMany: 'Ile?', sums: '+  −',
@@ -128,7 +155,8 @@ const STR = {
   },
   ru: {
     creator: 'Создай своего персонажа!', newChar: 'Новый', editLook: 'Изменить образ', surprise: 'Сюрприз!', cluck: 'Ко-ко-ко!', roar: 'Р-р-р!', likeBefore: 'Как раньше!',
-    crAsk: { gender: 'Девочка или мальчик?', hair: 'Выбери причёску!', hairColour: 'Выбери цвет волос!', eyes: 'Выбери цвет глаз!', face: 'Выбери форму лица!', skin: 'Выбери цвет кожи!', body: 'Выбери фигуру!', outfit: 'Выбери одежду!', acc: 'Выбери украшение!', name: 'Как меня зовут?' },
+    crAsk: { base: 'Кем ты будешь?', gender: 'Девочка или мальчик?', hair: 'Выбери причёску!', hairColour: 'Выбери цвет волос!', eyes: 'Выбери цвет глаз!', face: 'Выбери форму лица!', skin: 'Выбери цвет кожи!', body: 'Выбери фигуру!', outfit: 'Выбери одежду!', acc: 'Выбери украшение!', name: 'Как меня зовут?' },
+    shapes: 'Формы', days: 'Дни', match: 'Подбери', sing: 'Пой', today: 'Сегодня', whatShape: 'Какая это форма?', learnShapes: 'Давай учить формы!', tapShape: 'Нажми на форму!', daysWeek: 'Дни недели!', singDays: 'Споём дни недели!', whatNext: 'Что дальше?', tapDay: 'Нажми на день!',
     words: 'Слова', abc: 'ABC', numbers: 'Числа', whosPlaying: 'Кто играет?',
     food: 'Еда', animals: 'Животные', colours: 'Цвета', home: 'Дом', nature: 'Природа', body: 'Тело',
     look: 'Смотри', find: 'Покажи', sayIt: 'Скажи', trace: 'Обведи', count: 'Счёт', howMany: 'Сколько?', sums: '+  −',
@@ -144,7 +172,7 @@ const STR = {
 };
 const DOG_NAME = 'Bacon';
 /* Character names as shown/spoken per interface language. */
-const NAMES = { lea: { en: 'Lea', pl: 'Lea', ru: 'Лея', sayEn: 'Lea' }, ines: { en: 'Ines', pl: 'Ines', ru: 'Инес', sayEn: 'Eeness' } };
+const NAMES = { lea: { en: 'Lea', pl: 'Lea', ru: 'Лея', sayEn: 'Lea' }, ines: { en: 'Ines', pl: 'Ines', ru: 'Инес', sayEn: 'Eeness' }, leo: { en: 'Leo', pl: 'Leo', ru: 'Лео', sayEn: 'Leo' } };
 const lang = () => (STR[Store.settings.lang] ? Store.settings.lang : 'en');
 const T = (k, ...a) => { const v = STR[lang()][k] ?? STR.en[k]; return typeof v === 'function' ? v(...a) : v; };
 const tPick = (k) => pick(T(k));
@@ -548,6 +576,36 @@ const ART = {
     <path d="M26 20 C36 10 44 18 50 18 C56 18 64 10 74 20 C84 32 76 52 72 66 C68 80 66 92 60 92 C54 92 54 74 50 74 C46 74 46 92 40 92 C34 92 32 80 28 66 C24 52 16 32 26 20 Z" fill="#fff" ${ln}/>
     ${eyes(41, 59, 44, 3.5)}${cheeks(35, 65, 52, 4)}${smile(50, 52, 6)}
     <path d="M82 10 L84 16 L90 18 L84 20 L82 26 L80 20 L74 18 L80 16 Z" fill="#81d4fa"/>`,
+  /* v1.4.0 — real things for "match the shape" */
+  clock: () => `
+    <circle cx="50" cy="52" r="38" fill="#4fc3f7" ${ln}/><circle cx="50" cy="52" r="29" fill="#fff" ${ln}/>
+    <g fill="${INK}"><circle cx="50" cy="28" r="2.2"/><circle cx="74" cy="52" r="2.2"/><circle cx="50" cy="76" r="2.2"/><circle cx="26" cy="52" r="2.2"/></g>
+    <path d="M50 52 L50 36 M50 52 L62 58" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/><circle cx="50" cy="52" r="3.5" fill="#e53935"/>
+    <path d="M24 20 L32 14 M76 20 L68 14" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>${shine(30, 36, 4, 8)}`,
+  window: () => `
+    <rect x="16" y="16" width="68" height="68" rx="4" fill="#8d5a34" ${ln}/><rect x="23" y="23" width="54" height="54" fill="#bfe9ff" ${ln}/>
+    <path d="M50 23 V77 M23 50 H77" stroke="#8d5a34" stroke-width="6"/><path d="M23 23 V77 M23 50 H77" fill="none" ${thin}/>
+    <path d="M28 44 L40 30 M56 44 L68 30" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/>`,
+  pizza: () => `
+    <path d="M50 92 L14 18 Q50 6 86 18 Z" fill="#ffd54f" ${ln}/><path d="M14 18 Q50 6 86 18 L82 26 Q50 15 18 26 Z" fill="#d9952f" ${ln}/>
+    <g fill="#e53935" stroke="${INK}" stroke-width="2"><circle cx="40" cy="36" r="6"/><circle cx="60" cy="40" r="6"/><circle cx="50" cy="62" r="5"/></g>
+    <g fill="#43a047"><circle cx="34" cy="50" r="2"/><circle cx="62" cy="56" r="2"/><circle cx="52" cy="30" r="2"/></g>`,
+  door: () => `
+    <rect x="27" y="8" width="46" height="86" rx="3" fill="#ef6c57" ${ln}/>
+    <rect x="34" y="16" width="32" height="30" rx="2" fill="#f8a090" ${thin}/><rect x="34" y="54" width="32" height="32" rx="2" fill="#f8a090" ${thin}/>
+    <circle cx="64" cy="51" r="3.5" fill="#ffd54f" ${thin}/>`,
+  starfish: () => `
+    <path d="M50 8 L61 36 L91 38 L67 57 L76 87 L50 70 L24 87 L33 57 L9 38 L39 36 Z" fill="#ff8a65" ${ln}/>
+    <g fill="#ffccbc"><circle cx="50" cy="22" r="2.5"/><circle cx="76" cy="41" r="2.5"/><circle cx="66" cy="74" r="2.5"/><circle cx="34" cy="74" r="2.5"/><circle cx="24" cy="41" r="2.5"/></g>
+    ${eyes(43, 57, 48, 3)}${smile(50, 56, 5)}`,
+  cookie: () => `
+    <path d="M50 88 C30 72 10 58 10 36 C10 22 21 12 33 12 C41 12 47 17 50 23 C53 17 59 12 67 12 C79 12 90 22 90 36 C90 58 70 72 50 88 Z" fill="#d7a35f" ${ln}/>
+    <path d="M50 78 C34 65 19 54 19 37 C19 27 26 20 34 20 C41 20 46 25 50 32 C54 25 59 20 66 20 C74 20 81 27 81 37 C81 54 66 65 50 78 Z" fill="#f48fb1"/>
+    <g fill="#fff"><circle cx="35" cy="36" r="2.3"/><circle cx="62" cy="34" r="2.3"/><circle cx="50" cy="52" r="2.3"/><circle cx="40" cy="58" r="2"/><circle cx="64" cy="54" r="2"/></g>`,
+  calendar: () => `
+    <rect x="12" y="18" width="76" height="70" rx="10" fill="#fff" ${ln}/><path d="M12 28 A10 10 0 0 1 22 18 H78 A10 10 0 0 1 88 28 V38 H12 Z" fill="#e53935" ${ln}/>
+    <path d="M30 10 V26 M70 10 V26" stroke="${INK}" stroke-width="5" stroke-linecap="round"/>
+    ${['#e53935', '#fb8c00', '#f4b400', '#43a047', '#1e88e5', '#8e44ad', '#ec407a'].map((c, i) => `<circle cx="${23 + (i % 4) * 18}" cy="${52 + Math.floor(i / 4) * 20}" r="6.5" fill="${c}"/>`).join('')}`,
 };
 
 const COLOURS = { red: '#e53935', blue: '#1e88e5', yellow: '#fdd835', green: '#43a047', orange: '#fb8c00', purple: '#8e44ad', pink: '#f06292', brown: '#8d5a34', black: '#333', white: '#fafafa' };
@@ -558,9 +616,30 @@ function balloon(c) {
     ${shine(34, 30, 6, 11, 25)}`;
 }
 
+/* v1.4.0 — Shapes: bright, flat, friendly (a little face, like the other pictures). */
+const SHAPE_DEFS = {
+  circle: ['#e53935', '<circle cx="50" cy="50" r="38"/>'],
+  square: ['#1e88e5', '<rect x="14" y="14" width="72" height="72" rx="5"/>'],
+  triangle: ['#43a047', '<path d="M50 10 L90 84 L10 84 Z"/>'],
+  rectangle: ['#fb8c00', '<rect x="6" y="26" width="88" height="50" rx="5"/>'],
+  oval: ['#8e44ad', '<ellipse cx="50" cy="50" rx="28" ry="40"/>'],
+  star: ['#f4b400', '<path d="M50 6 L62 37 L95 38 L69 58 L78 91 L50 72 L22 91 L31 58 L5 38 L38 37 Z"/>'],
+  heart: ['#ec407a', '<path d="M50 88 C30 72 8 58 8 35 C8 20 20 10 32 10 C41 10 47 15 50 22 C53 15 59 10 68 10 C80 10 92 20 92 35 C92 58 70 72 50 88 Z"/>'],
+  diamond: ['#00acc1', '<path d="M50 6 L86 50 L50 94 L14 50 Z"/>'],
+  pentagon: ['#7cb342', '<path d="M50 8 L91 38 L75 88 L25 88 L9 38 Z"/>'],
+  hexagon: ['#5c6bc0', '<path d="M28 12 L72 12 L94 50 L72 88 L28 88 L6 50 Z"/>'],
+};
+function shapeSvg(k) {
+  const [c, d] = SHAPE_DEFS[k] || SHAPE_DEFS.circle;
+  const cy = k === 'triangle' ? 62 : k === 'heart' ? 44 : k === 'star' ? 52 : 50;
+  return `<g fill="${c}" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round">${d}</g>
+    <path d="M28 30 Q32 22 40 20" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7" transform="translate(${k === 'rectangle' ? '-8 14' : k === 'oval' ? '4 4' : k === 'triangle' ? '12 26' : k === 'diamond' ? '10 14' : k === 'star' ? '12 20' : '0 0'})"/>
+    ${eyes(42, 58, cy - 4, 3.2)}${cheeks(36, 64, cy + 3, 3.4)}${smile(50, cy + 3, 5)}`;
+}
+
 function art(key, cls = '') {
   const u = ++_uid;
-  const inner = key.startsWith('colour:') ? balloon(COLOURS[key.slice(7)]) : (ART[key] ? ART[key](u) : '');
+  const inner = key.startsWith('colour:') ? balloon(COLOURS[key.slice(7)]) : key.startsWith('shape:') ? shapeSvg(key.slice(6)) : (ART[key] ? ART[key](u) : '');
   return `<svg class="art ${cls}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">${inner}</svg>`;
 }
 
@@ -597,7 +676,7 @@ const AV = (() => {
   const FUNNY = ['pirate', 'superhero', 'astronaut', 'chicken', 'dino', 'bunny', 'bear', 'banana'];
   const ACCS = ['none', 'headband', 'bow', 'flower', 'crown', 'hat', 'cap', 'glasses'];
   const GIRL_NAMES = ['Mia', 'Zoe', 'Lily', 'Ola', 'Ana', 'Ella', 'Nina', 'Maja'];
-  const BOY_NAMES = ['Leo', 'Max', 'Tom', 'Oskar', 'Ben', 'Adam', 'Kuba', 'Noah'];
+  const BOY_NAMES = ['Olek', 'Max', 'Tom', 'Oskar', 'Ben', 'Adam', 'Kuba', 'Noah'];
   const PRESETS = {
     lea: { gender: 'girl', hair: 'pigtails', hairColour: 'blonde', eyes: 'brown', face: 'round', skin: 'light', body: 'average', outfit: 'flowerPink', acc: 'headband' },
     ines: { gender: 'girl', hair: 'braids', hairColour: 'brunette', eyes: 'brown', face: 'round', skin: 'light', body: 'average', outfit: 'flowerTeal', acc: 'none' },
@@ -895,15 +974,21 @@ const AV = (() => {
 
 
 /* ===== src/24-paint.js ===== */
-/* Lea Learns — dress-up for Lea and Ines in their ORIGINAL painted style.
+/* Lea Learns — dress-up for every character in the ORIGINAL painted style (Lea, Ines, Leo, plus Maya and Sam as creator bases).
    Costumes are painted variants of the same illustrations (assets/character/look/<who>-<outfit>-<pose>.webp, all 7 poses).
    Hair colour is changed on the painted art itself: a per-image hair mask (assets/character/hair/<image>.png) tells
    which pixels are hair, and those pixels get the new colour while keeping the brush-stroke light and shade. */
 const PAINT = (() => {
   const OUTFITS = ['original', 'chicken', 'dino', 'bunny', 'princess', 'superhero', 'pirate', 'astronaut', 'banana'];
   const HAIR = ['original', ...Object.keys(AV.HAIR_COLOURS)];
-  const ORIGINAL_HAIR = { lea: '#c9965f', ines: '#4a2f22' };
-  const base = (who, pose, outfit) => (outfit && outfit !== 'original' ? `assets/character/look/${who}-${outfit}-${pose}.webp` : `assets/character/${who}-${pose}.png`);
+  const ORIGINAL_HAIR = { lea: '#c9965f', ines: '#4a2f22', leo: '#7a4a2a', maya: '#1c1410', sam: '#1d1511' };
+  /* Painted bodies: Lea, Ines and Leo are ready-made players; all five are bases for "Create your character". */
+  const BASES = ['lea', 'ines', 'leo', 'maya', 'sam'];
+  const BOYS = ['leo', 'sam'];
+  const base = (who, pose, outfit) => {
+    const o = outfit && outfit !== 'original' ? outfit : 'original';
+    return o === 'original' && (who === 'lea' || who === 'ines') ? `assets/character/${who}-${pose}.png` : `assets/character/look/${who}-${o}-${pose}.webp`;
+  };
   const maskOf = (who, pose, outfit) => `assets/character/hair/${who}${outfit && outfit !== 'original' ? '-' + outfit : ''}-${pose}.png`;
   const valid = (l) => {
     const o = Object.assign({ outfit: 'original', hairColour: 'original' }, l || {});
@@ -978,7 +1063,19 @@ const PAINT = (() => {
   function refresh() {
     $$('img.lea[data-who][data-pose]').forEach((im) => { const s = poseSrc(im.dataset.pose, im.dataset.who); if (im.getAttribute('src') !== s) im.src = s; });
   }
-  return { OUTFITS, HAIR, ORIGINAL_HAIR, valid, isOriginal, src, prepare, base, render };
+  /* A custom character: painted base + outfit + hair colour + name. */
+  const validChar = (c) => Object.assign({}, c, valid(c), { base: BASES.includes(c && c.base) ? c.base : 'maya' });
+  /* 1.3.x characters were drawn as vectors: move them to the nearest painted base, keeping name, outfit and hair colour where they exist. */
+  function fromVector(c) {
+    const dark = ['tan', 'brown', 'deep'].includes(c.skin);
+    const b = c.gender === 'boy' ? (dark ? 'sam' : 'leo') : dark ? 'maya' : ['black', 'brunette'].includes(c.hairColour) ? 'ines' : 'lea';
+    const outfit = c.outfit === 'bear' ? 'bunny' : c.outfit;
+    // a natural colour close to the painted child's own hair keeps the painting untouched; fun colours are recoloured
+    const own = { lea: ['blonde'], ines: ['brunette', 'black'], leo: ['brunette'], maya: ['black', 'brunette'], sam: ['black', 'brunette'] }[b];
+    const hairColour = own.includes(c.hairColour) ? 'original' : c.hairColour;
+    return Object.assign(validChar({ base: b, outfit, hairColour }), { id: c.id, name: c.name });
+  }
+  return { OUTFITS, HAIR, ORIGINAL_HAIR, BASES, BOYS, valid, validChar, fromVector, isOriginal, src, prepare, base, render };
 })();
 
 
@@ -1331,20 +1428,21 @@ const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) {
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const POSES = ['front', 'wave', 'cheer', 'point', 'sit', 'think', 'jump'];
-/* Characters: built-in Lea and Ines (illustrated; drawn by AV only once their look is changed) plus custom ones. */
-const BUILTIN = ['lea', 'ines'];
+/* Characters: ready-made Lea, Ines and Leo plus custom ones; all painted (see 24-paint.js). */
+const BUILTIN = ['lea', 'ines', 'leo'];
 const isBuiltin = (who) => BUILTIN.includes(who);
 const allChars = () => [...BUILTIN, ...Store.chars.map((c) => c.id)];
 const lookOf = (who) => (isBuiltin(who) ? Store.look(who) : Store.char(who));
 const player = () => (allChars().includes(Store.settings.player) ? Store.settings.player : 'lea');
 const playerName = (who = player()) => (isBuiltin(who) ? NAMES[who][lang()] : (Store.char(who) || {}).name || '?');
 const playerSay = () => (lang() === 'en' && isBuiltin(player()) ? NAMES[player()].sayEn : playerName());
-/* Speech lines that contain the player's name: recorded clips for Lea / Ines, device voice for a custom name. */
+/* Speech lines that contain the player's name: recorded clips for Lea / Ines / Leo, device voice for a custom name. */
 const hiSpeech = () => (isBuiltin(player()) ? T('hi', playerSay()) : [T('hello'), NAME(playerName() + '!')]);
 const wellDoneSpeech = () => (isBuiltin(player()) ? T('wellDone', playerSay()) : [T('praise')[1], NAME(playerName() + '!')]);
 const poseSrc = (pose, who = player()) => {
-  if (isBuiltin(who)) { const l = Store.look(who); return l ? PAINT.src(who, pose, l) : `assets/character/${who}-${pose}.png`; } // painted art, same style
-  const c = Store.char(who); return c ? AV.src(c, pose) : `assets/character/lea-${pose}.png`;
+  if (isBuiltin(who)) { const l = Store.look(who); return l ? PAINT.src(who, pose, l) : PAINT.base(who, pose); } // painted art, same style
+  const c = Store.char(who); if (!c) return PAINT.base('lea', pose);
+  const v = PAINT.validChar(c); return PAINT.src(v.base, pose, v);
 };
 const leaImg = (pose, cls = '', who = player()) => `<img class="lea ${cls}" src="${poseSrc(pose, who)}" alt="${playerName(who)}" draggable="false" data-pose="${pose}" data-who="${who}">`;
 
@@ -1646,6 +1744,8 @@ SCREENS.home = ({ hello } = {}) => {
         ${lolly('l-words', art('apple'), T('words'), '#ff6b81')}
         ${lolly('l-abc', '<b style="--c:#e53935">A</b><b style="--c:#1e88e5">B</b><b style="--c:#43a047">C</b>', T('abc'), '#b388ff')}
         ${lolly('l-num', '<b style="--c:#f4b400">1</b><b style="--c:#ec407a">2</b><b style="--c:#1e88e5">3</b>', T('numbers'), '#4dd0e1')}
+        ${lolly('l-shapes', art('shape:triangle', 'mini') + art('shape:circle', 'mini'), T('shapes'), '#9ccc65')}
+        ${lolly('l-days', art('calendar'), T('days'), '#ffb74d')}
       </nav>
     </div>
     <button class="home-dog" aria-label="Bacon" hidden><img src="assets/character/dog-front.png" alt="" draggable="false"></button>
@@ -1663,6 +1763,8 @@ SCREENS.home = ({ hello } = {}) => {
   onTap($('.l-words', el), (e) => open('words', T('words'), e.currentTarget || $('.l-words', el)), { sound: 'open' });
   onTap($('.l-abc', el), () => open('abc', 'ABC', $('.l-abc', el)), { sound: 'open' });
   onTap($('.l-num', el), () => open('numbers', T('numbers'), $('.l-num', el)), { sound: 'open' });
+  onTap($('.l-shapes', el), () => open('shapes', T('shapes'), $('.l-shapes', el)), { sound: 'open' });
+  onTap($('.l-days', el), () => open('days', T('days'), $('.l-days', el)), { sound: 'open' });
   onTap($('.door', el), () => open('words', T('words'), $('.door', el)), { sound: 'open' });
   onTap($('.hero-lea', el), () => { const t = pick([T('hi', playerName()), T('hello'), T('letsPlay'), T('loveApples')]); talk(t, t === T('hi', playerName()) ? hiSpeech() : t); }, { sound: 'pop' });
   onTap($('.swap', el), () => { Store.set('player', other); go('home', { hello: true }); }, { sound: 'open' });
@@ -1672,12 +1774,18 @@ SCREENS.home = ({ hello } = {}) => {
   /* Pencil lives on the other side of the candy house (bottom-right). In portrait the lollipops fill the bottom row,
      so it sits just above the Numbers lollipop instead. */
   const pen = $('.edit-look', el);
+  const placeDog = () => { // Bacon sits right above the pencil, on the free right edge — never on a lollipop
+    const r = pen.getBoundingClientRect(); if (!r.height) return;
+    dog.style.right = Math.round(innerWidth - r.right) + 'px';
+    dog.style.bottom = Math.round(innerHeight - r.top + 10) + 'px';
+  };
   const placePen = () => {
     pen.style.bottom = '';
-    if (innerWidth > innerHeight) return;
-    const l = $('.l-num', el); if (!l) return;
-    const r = l.getBoundingClientRect(); if (!r.height) return;
-    pen.style.bottom = Math.round(innerHeight - r.top + 14) + 'px';
+    if (innerWidth <= innerHeight) {
+      const tops = $$('.lolly', el).map((l) => l.getBoundingClientRect()).filter((r) => r.height).map((r) => r.top);
+      if (tops.length) pen.style.bottom = Math.round(innerHeight - Math.min(...tops) + 14) + 'px';
+    }
+    placeDog();
   };
   el._layout = () => { placeOnWorld(el); placePen(); };
   el._enter = () => {
@@ -1693,12 +1801,12 @@ SCREENS.home = ({ hello } = {}) => {
 
 /* ===== src/52-creator.js ===== */
 /* Lea Learns — "Create your character": a live dress-up editor. Icons and swatches, no reading needed.
-   New characters are saved next to Lea and Ines. Lea and Ines keep their original painted illustration style:
-   their costumes are painted variants of the same art and hair colour is recoloured on the painting (see 24-paint.js);
-   one tap brings back their original look. */
+   Everything is painted in the same illustration style as Lea and Ines: a new character is a painted child (base) + a painted
+   costume + a hair colour recoloured on the painting + a name (see 24-paint.js). Lea, Ines and Leo change clothes and hair
+   colour the same way, and one tap brings back their original look. */
 const CRL = {
   en: {
-    cat: { gender: 'Girl / boy', hair: 'Hair', hairColour: 'Colour', eyes: 'Eyes', face: 'Face', skin: 'Skin', body: 'Body', outfit: 'Clothes', acc: 'Extras' },
+    cat: { base: 'Who', gender: 'Girl / boy', hair: 'Hair', hairColour: 'Colour', eyes: 'Eyes', face: 'Face', skin: 'Skin', body: 'Body', outfit: 'Clothes', acc: 'Extras' },
     gender: { girl: 'Girl', boy: 'Boy' },
     hair: { pigtails: 'Pigtails', braids: 'Braids', long: 'Long', bob: 'Bob', ponytail: 'Ponytail', bun: 'Bun', curly: 'Curly', short: 'Short', spiky: 'Spiky' },
     hairColour: { brunette: 'Brown', black: 'Black', blonde: 'Blonde', ginger: 'Ginger', red: 'Red', silver: 'Silver', pink: 'Pink', blue: 'Blue', purple: 'Purple', neon: 'Neon green', rainbow: 'Rainbow' },
@@ -1708,11 +1816,13 @@ const CRL = {
     body: { slim: 'Slim', average: 'Medium', round: 'Round', tall: 'Tall', small: 'Small' },
     outfit: { flowerPink: 'Pink flower dress', flowerTeal: 'Teal daisy dress', appleDress: 'Apple dress', princess: 'Princess dress', polka: 'Polka-dot dress', rainbow: 'Rainbow dress', tee: 'T-shirt and trousers', dungarees: 'Dungarees', sporty: 'Sporty', pirate: 'Pirate', superhero: 'Superhero', astronaut: 'Astronaut', chicken: 'Chicken', dino: 'Dinosaur', bunny: 'Bunny', bear: 'Teddy bear', banana: 'Banana' },
     acc: { none: 'Nothing', headband: 'Headband', bow: 'Bow', flower: 'Flower', crown: 'Crown', hat: 'Sun hat', cap: 'Cap', glasses: 'Glasses' },
-    orig: { outfit: 'Her own dress', hair: 'Her own hair' },
+    prince: 'Prince',
+    orig: { outfit: 'Own clothes', hair: 'Own hair' },
+    base: { lea: 'Girl with fair hair', ines: 'Girl with dark braids', leo: 'Boy with brown hair', maya: 'Girl with curly puffs', sam: 'Boy with curly hair' },
     name: 'Name', save: 'Save', dice: 'Surprise me', reset: 'Original look', del: 'Delete', delSure: 'Tap again to delete', back: 'Back',
   },
   pl: {
-    cat: { gender: 'Dziewczynka / chłopiec', hair: 'Fryzura', hairColour: 'Kolor', eyes: 'Oczy', face: 'Buzia', skin: 'Skóra', body: 'Sylwetka', outfit: 'Ubranie', acc: 'Dodatki' },
+    cat: { base: 'Kto', gender: 'Dziewczynka / chłopiec', hair: 'Fryzura', hairColour: 'Kolor', eyes: 'Oczy', face: 'Buzia', skin: 'Skóra', body: 'Sylwetka', outfit: 'Ubranie', acc: 'Dodatki' },
     gender: { girl: 'Dziewczynka', boy: 'Chłopiec' },
     hair: { pigtails: 'Kucyki', braids: 'Warkocze', long: 'Długie', bob: 'Bob', ponytail: 'Kitka', bun: 'Kok', curly: 'Loki', short: 'Krótkie', spiky: 'Na jeża' },
     hairColour: { brunette: 'Brązowe', black: 'Czarne', blonde: 'Blond', ginger: 'Rude', red: 'Czerwone', silver: 'Srebrne', pink: 'Różowe', blue: 'Niebieskie', purple: 'Fioletowe', neon: 'Neonowo zielone', rainbow: 'Tęczowe' },
@@ -1722,11 +1832,13 @@ const CRL = {
     body: { slim: 'Szczupła', average: 'Średnia', round: 'Pulchna', tall: 'Wysoka', small: 'Niska' },
     outfit: { flowerPink: 'Różowa sukienka w kwiatki', flowerTeal: 'Morska sukienka w stokrotki', appleDress: 'Sukienka w jabłuszka', princess: 'Suknia księżniczki', polka: 'Sukienka w kropki', rainbow: 'Tęczowa sukienka', tee: 'Koszulka i spodnie', dungarees: 'Ogrodniczki', sporty: 'Strój sportowy', pirate: 'Pirat', superhero: 'Superbohater', astronaut: 'Astronauta', chicken: 'Kurczak', dino: 'Dinozaur', bunny: 'Króliczek', bear: 'Miś', banana: 'Banan' },
     acc: { none: 'Nic', headband: 'Opaska', bow: 'Kokarda', flower: 'Kwiatek', crown: 'Korona', hat: 'Kapelusz', cap: 'Czapka z daszkiem', glasses: 'Okulary' },
-    orig: { outfit: 'Jej sukienka', hair: 'Jej włosy' },
+    prince: 'Książę',
+    orig: { outfit: 'Własne ubranie', hair: 'Własne włosy' },
+    base: { lea: 'Dziewczynka o jasnych włosach', ines: 'Dziewczynka z ciemnymi warkoczami', leo: 'Chłopiec o brązowych włosach', maya: 'Dziewczynka z kręconymi kucykami', sam: 'Chłopiec z kręconymi włosami' },
     name: 'Imię', save: 'Zapisz', dice: 'Losuj', reset: 'Oryginalny wygląd', del: 'Usuń', delSure: 'Dotknij ponownie, aby usunąć', back: 'Wróć',
   },
   ru: {
-    cat: { gender: 'Девочка / мальчик', hair: 'Причёска', hairColour: 'Цвет', eyes: 'Глаза', face: 'Лицо', skin: 'Кожа', body: 'Фигура', outfit: 'Одежда', acc: 'Украшения' },
+    cat: { base: 'Кто', gender: 'Девочка / мальчик', hair: 'Причёска', hairColour: 'Цвет', eyes: 'Глаза', face: 'Лицо', skin: 'Кожа', body: 'Фигура', outfit: 'Одежда', acc: 'Украшения' },
     gender: { girl: 'Девочка', boy: 'Мальчик' },
     hair: { pigtails: 'Хвостики', braids: 'Косички', long: 'Длинные', bob: 'Каре', ponytail: 'Хвост', bun: 'Пучок', curly: 'Кудри', short: 'Короткие', spiky: 'Ёжик' },
     hairColour: { brunette: 'Каштановые', black: 'Чёрные', blonde: 'Светлые', ginger: 'Рыжие', red: 'Красные', silver: 'Серебряные', pink: 'Розовые', blue: 'Синие', purple: 'Фиолетовые', neon: 'Неоново-зелёные', rainbow: 'Радужные' },
@@ -1736,20 +1848,21 @@ const CRL = {
     body: { slim: 'Стройная', average: 'Средняя', round: 'Пухленькая', tall: 'Высокая', small: 'Маленькая' },
     outfit: { flowerPink: 'Розовое платье в цветочек', flowerTeal: 'Бирюзовое платье с ромашками', appleDress: 'Платье с яблочками', princess: 'Платье принцессы', polka: 'Платье в горошек', rainbow: 'Радужное платье', tee: 'Футболка и брюки', dungarees: 'Комбинезон', sporty: 'Спортивная форма', pirate: 'Пират', superhero: 'Супергерой', astronaut: 'Космонавт', chicken: 'Цыплёнок', dino: 'Динозавр', bunny: 'Зайчик', bear: 'Мишка', banana: 'Банан' },
     acc: { none: 'Ничего', headband: 'Ободок', bow: 'Бантик', flower: 'Цветочек', crown: 'Корона', hat: 'Шляпка', cap: 'Кепка', glasses: 'Очки' },
-    orig: { outfit: 'Её платье', hair: 'Её волосы' },
+    prince: 'Принц',
+    orig: { outfit: 'Своя одежда', hair: 'Свои волосы' },
+    base: { lea: 'Девочка со светлыми волосами', ines: 'Девочка с тёмными косичками', leo: 'Мальчик с каштановыми волосами', maya: 'Девочка с кудрявыми хвостиками', sam: 'Мальчик с кудрявыми волосами' },
     name: 'Имя', save: 'Сохранить', dice: 'Случайно', reset: 'Как было', del: 'Удалить', delSure: 'Нажмите ещё раз, чтобы удалить', back: 'Назад',
   },
 };
 const CR = () => CRL[lang()] || CRL.en;
 const CR_OPTIONS = { gender: ['girl', 'boy'], hair: AV.HAIR, hairColour: Object.keys(AV.HAIR_COLOURS), eyes: Object.keys(AV.EYES), face: AV.FACES, skin: Object.keys(AV.SKIN), body: Object.keys(AV.BODIES), outfit: AV.OUTFITS, acc: AV.ACCS };
-const HOODED = ['chicken', 'dino', 'bunny', 'bear', 'banana'];
 
 function crTabIcon(k, p) {
   const s = (inner) => `<svg viewBox="0 0 48 48" aria-hidden="true">${inner}</svg>`;
   const K = 'stroke="#4a2f27" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
-  const hc = AV.HAIR_COLOURS[p.hairColour];
+  const hc = AV.HAIR_COLOURS[p.hairColour] || '#7a4a2a';
   switch (k) {
-    case 'gender': return s(`<circle cx="15" cy="13" r="7" fill="#ffd9b8" ${K}/><path d="M15 21 L6 40 L24 40 Z" fill="#ff7eb6" ${K}/><circle cx="34" cy="13" r="7" fill="#ffd9b8" ${K}/><path d="M27 22 L41 22 L41 32 L38 32 L38 42 L30 42 L30 32 L27 32 Z" fill="#4aa3ff" ${K}/>`);
+    case 'base': case 'gender': return s(`<circle cx="15" cy="13" r="7" fill="#ffd9b8" ${K}/><path d="M15 21 L6 40 L24 40 Z" fill="#ff7eb6" ${K}/><circle cx="34" cy="13" r="7" fill="#ffd9b8" ${K}/><path d="M27 22 L41 22 L41 32 L38 32 L38 42 L30 42 L30 32 L27 32 Z" fill="#4aa3ff" ${K}/>`);
     case 'hair': return s(`<path d="M8 30 C4 8 44 8 40 30 C40 40 36 44 34 44 C36 30 30 20 24 18 C18 20 12 30 14 44 C12 44 8 40 8 30 Z" fill="${hc === 'rainbow' ? '#ff7eb6' : hc}" ${K}/>`);
     case 'hairColour': return s(`<circle cx="15" cy="16" r="9" fill="#ff7eb6" ${K}/><circle cx="33" cy="16" r="9" fill="#ffd54f" ${K}/><circle cx="15" cy="33" r="9" fill="#4aa3ff" ${K}/><circle cx="33" cy="33" r="9" fill="#7dff3a" ${K}/>`);
     case 'eyes': return s(`<path d="M4 24 C12 10 36 10 44 24 C36 38 12 38 4 24 Z" fill="#fff" ${K}/><circle cx="24" cy="24" r="8" fill="${AV.EYES[p.eyes]}"/><circle cx="24" cy="24" r="4" fill="#2a1a14"/><circle cx="27" cy="21" r="2" fill="#fff"/>`);
@@ -1766,8 +1879,10 @@ SCREENS.creator = ({ id = 'new', from } = {}) => {
   const isNew = id === 'new' || (!isBuiltin(id) && !Store.char(id));
   const builtin = isBuiltin(id);
   const back = from || (isNew ? 'gate' : 'home');
-  let p = builtin ? PAINT.valid(Store.look(id)) : isNew ? AV.valid(Object.assign({}, AV.DEFAULT, { name: pick(AV.GIRL_NAMES) })) : AV.valid(Store.char(id));
-  const cats = builtin ? ['outfit', 'hairColour'] : ['gender', 'hair', 'hairColour', 'eyes', 'face', 'skin', 'body', 'outfit', 'acc'];
+  let p = builtin ? PAINT.valid(Store.look(id)) : isNew ? PAINT.validChar({ base: 'maya', name: pick(AV.GIRL_NAMES) }) : PAINT.validChar(Store.char(id));
+  const cats = builtin ? ['outfit', 'hairColour'] : ['base', 'outfit', 'hairColour'];
+  const body = () => (builtin ? id : p.base);
+  const isBoy = () => PAINT.BOYS.includes(body());
   let tab = cats[0];
   const t = CR();
   const el = h(`<section class="creator" lang="${lang()}">
@@ -1797,35 +1912,31 @@ SCREENS.creator = ({ id = 'new', from } = {}) => {
   const img = $('.cr-img', el), opts = $('.cr-opts', el), nameIn = $('.cr-name', el);
   if (nameIn) nameIn.value = p.name;
   const hop = () => { img.classList.remove('hop'); void img.offsetWidth; img.classList.add('hop'); };
-  const opt = (k) => (builtin ? (k === 'outfit' ? PAINT.OUTFITS : PAINT.HAIR) : CR_OPTIONS[k]);
-  const label = (k, v) => (v === 'original' ? t.orig[k === 'outfit' ? 'outfit' : 'hair'] : t[k][v]);
+  const opt = (k) => (k === 'base' ? PAINT.BASES : k === 'outfit' ? PAINT.OUTFITS : PAINT.HAIR);
+  const label = (k, v) => (v === 'original' ? t.orig[k === 'outfit' ? 'outfit' : 'hair'] : k === 'outfit' && v === 'princess' && isBoy() ? t.prince : t[k][v]);
   const paint = () => {
-    if (builtin) {
-      const want = p; img.src = PAINT.src(id, 'front', p);
-      PAINT.prepare(id, p, ['front']).then(() => { if (want === p) img.src = PAINT.src(id, 'front', p); });
-    } else img.src = AV.src(p, 'front');
+    const want = p, who = body(); img.src = PAINT.src(who, 'front', p);
+    PAINT.prepare(who, p, ['front']).then(() => { if (want === p) img.src = PAINT.src(who, 'front', p); });
     $$('.cr-tab', el).forEach((b) => { b.classList.toggle('on', b.dataset.cat === tab); $('.cr-tab-ic', b).innerHTML = crTabIcon(b.dataset.cat, p); });
   };
   const thumb = (k, v) => {
-    if (builtin && k === 'outfit') return `<img src="${PAINT.base(id, 'front', v)}" alt="" draggable="false">`;
-    if (builtin && k === 'hairColour' && v === 'original') return `<span class="sw" style="--c:${PAINT.ORIGINAL_HAIR[id]}"></span>`;
-    const q = Object.assign({}, k === 'gender' ? AV.withGender(p, v) : p, k === 'gender' ? {} : { [k]: v });
-    if ((k === 'hair' || k === 'face' || k === 'acc') && HOODED.includes(q.outfit)) q.outfit = q.gender === 'boy' ? 'tee' : 'appleDress';
-    if (k === 'hairColour') return `<span class="sw ${v === 'rainbow' ? 'sw-rainbow' : ''}" style="--c:${AV.HAIR_COLOURS[v]}"></span>`;
-    if (k === 'skin') return `<span class="sw" style="--c:${AV.SKIN[v]}"></span>`;
-    if (k === 'eyes') return `<span class="sw sw-eye" style="--c:${AV.EYES[v]}"></span>`;
-    const crop = ['face', 'acc', 'hair'].includes(k) ? 'head' : k === 'gender' ? 'top' : '';
-    return `<img src="${AV.src(q, 'front', crop)}" alt="" draggable="false">`;
+    if (k === 'base') return `<img src="${PAINT.base(v, 'front', 'original')}" alt="" draggable="false">`;
+    if (k === 'outfit') return `<img src="${PAINT.base(body(), 'front', v)}" alt="" draggable="false">`;
+    if (k === 'hairColour' && v === 'original') return `<span class="sw" style="--c:${PAINT.ORIGINAL_HAIR[body()]}"></span>`;
+    return `<span class="sw ${v === 'rainbow' ? 'sw-rainbow' : ''}" style="--c:${AV.HAIR_COLOURS[v]}"></span>`;
   };
   const renderOpts = () => {
-    const cur = tab === 'gender' ? p.gender : p[tab];
+    const cur = p[tab];
     opts.className = `cr-opts scroll k-${tab}`;
-    opts.innerHTML = opt(tab).map((v) => `<button class="cr-opt ${v === cur ? 'on' : ''} ${AV.FUNNY.includes(v) ? 'funny' : ''} ${builtin && tab === 'outfit' ? 'painted' : ''}" data-v="${v}" aria-label="${label(tab, v)}" aria-pressed="${v === cur}">${thumb(tab, v)}</button>`).join('');
+    opts.innerHTML = opt(tab).map((v) => `<button class="cr-opt ${v === cur ? 'on' : ''} ${AV.FUNNY.includes(v) ? 'funny' : ''} ${tab === 'outfit' || tab === 'base' ? 'painted' : ''}" data-v="${v}" aria-label="${label(tab, v)}" aria-pressed="${v === cur}">${thumb(tab, v)}</button>`).join('');
     opts.scrollTop = 0;
     $$('.cr-opt', opts).forEach((b) => onTap(b, () => {
       const v = b.dataset.v;
-      p = tab === 'gender' ? AV.withGender(p, v) : Object.assign({}, p, { [tab]: v });
-      if (tab === 'gender' && nameIn) nameIn.value = p.name;
+      p = Object.assign({}, p, { [tab]: v });
+      if (tab === 'base' && nameIn) { // keep a typed name; swap only our own suggestion when girl ↔ boy changes
+        const boy = PAINT.BOYS.includes(v), cur = nameIn.value.trim();
+        if (!cur || (boy && AV.GIRL_NAMES.includes(cur)) || (!boy && AV.BOY_NAMES.includes(cur))) nameIn.value = p.name = pick(boy ? AV.BOY_NAMES : AV.GIRL_NAMES);
+      }
       paint(); hop(); renderOpts();
       if (v === 'chicken') Audio.say(T('cluck')); else if (v === 'dino') Audio.say(T('roar'));
     }, { sound: 'pop' }));
@@ -1839,7 +1950,11 @@ SCREENS.creator = ({ id = 'new', from } = {}) => {
   onTap($('.cr-back', el), () => go(back), { sound: 'whoosh' });
   onTap($('.cr-dice', el), () => {
     if (builtin) p = PAINT.valid({ outfit: pick(PAINT.OUTFITS.slice(1)), hairColour: pick(PAINT.HAIR.slice(1)) });
-    else { p = AV.random(); if (nameIn) nameIn.value = p.name; }
+    else {
+      const b = pick(PAINT.BASES);
+      p = PAINT.validChar({ base: b, outfit: pick(PAINT.OUTFITS), hairColour: Math.random() < 0.5 ? 'original' : pick(PAINT.HAIR.slice(1)), name: pick(PAINT.BOYS.includes(b) ? AV.BOY_NAMES : AV.GIRL_NAMES) });
+      if (nameIn) nameIn.value = p.name;
+    }
     paint(); hop(); renderOpts(); Audio.say(T('surprise'));
   }, { sound: 'sparkle' });
   const reset = $('.cr-reset', el);
@@ -1854,12 +1969,13 @@ SCREENS.creator = ({ id = 'new', from } = {}) => {
     let who = id;
     if (builtin) Store.setLook(id, PAINT.isOriginal(p) ? null : PAINT.valid(p));
     else {
-      const name = (nameIn ? nameIn.value : p.name).replace(/[<>&"]/g, '').trim().slice(0, 14) || (p.gender === 'boy' ? AV.BOY_NAMES[0] : AV.GIRL_NAMES[0]);
+      const name = (nameIn ? nameIn.value : p.name).replace(/[<>&"]/g, '').trim().slice(0, 14) || (isBoy() ? AV.BOY_NAMES[0] : AV.GIRL_NAMES[0]);
       who = isNew ? 'c-' + Date.now().toString(36) + Math.floor(Math.random() * 1e3).toString(36) : id;
-      Store.saveChar(Object.assign(AV.valid(p), { name, id: who }));
+      const v = PAINT.validChar(p);
+      Store.saveChar({ id: who, name, base: v.base, outfit: v.outfit, hairColour: v.hairColour });
     }
     Store.set('player', who);
-    const ready = builtin ? PAINT.prepare(id, Store.look(id) || {}) : Promise.resolve();
+    const ready = builtin ? PAINT.prepare(id, Store.look(id) || {}) : PAINT.prepare(p.base, PAINT.validChar(p));
     const superWord = T('praise').find((x) => /^(Super|Супер)/.test(x)) || T('praise')[0];
     ready.then(() => {
       celebrate({ text: superWord, pose: 'jump' });
@@ -2447,6 +2563,268 @@ SCREENS.sums = () => {
 };
 
 
+/* ===== src/82-shapes.js ===== */
+/* Lea Learns — Shapes. Montessori order: look and name the shape, find it among others, then find it in real
+   things around us (ball → circle, pizza slice → triangle). Shape words are English. */
+const SHAPE_C = 'var(--shape-c, #43a047)';
+const shapeWord = (k) => k;
+const anShape = (k) => (/^[aeiou]/.test(k) ? 'an ' : 'a ');
+const thingSentence = (obj, shape) => `The ${spoken(obj)} is ${anShape(shape)}${shape}.`;
+
+function modeTiles(stage, tiles, prefix) {
+  const box = h(`<div class="num-modes"></div>`);
+  tiles.forEach((t) => {
+    const b = h(`<button class="num-tile" data-go="${t.go}" aria-label="${t.name}">${t.html}<span class="cat-name">${t.name}</span>${Store.data.played[prefix + t.go] ? `<span class="tile-star">${ICON.star}</span>` : ''}</button>`);
+    onTap(b, () => { if (t.say) Audio.say(t.say); go(t.go); }, { sound: 'open' });
+    box.appendChild(b);
+  });
+  stage.appendChild(box);
+}
+
+SCREENS.shapes = () => {
+  const el = h(`<section class="activity shapes-home" style="--c:${SHAPE_C}"></section>`);
+  el.appendChild(topBar({ back: 'home', title: T('shapes'), icon: 'shape:star', colour: SHAPE_C }));
+  const stage = h(`<main class="stage"></main>`);
+  modeTiles(stage, [
+    { go: 'shapeLook', name: T('look'), html: `<span class="nm-pics">${art('shape:circle')}${art('shape:triangle')}${art('shape:square')}</span>`, say: T('lookListen') },
+    { go: 'shapeFind', name: T('find'), html: `<span class="nm-pics">${art('shape:star')}${art('shape:heart')}<b class="q">?</b></span>`, say: T('tapShape') },
+    { go: 'shapeMatch', name: T('match'), html: `<span class="nm-pics">${art('pizza')}<b>=</b>${art('shape:triangle')}</span>`, say: T('whatShape') },
+  ], 'shapes:');
+  el.appendChild(stage);
+  el.appendChild(guide('point', T('learnShapes')));
+  el._enter = () => Audio.say(T('learnShapes'));
+  return el;
+};
+
+SCREENS.shapeLook = () => {
+  const el = h(`<section class="activity shape-look" style="--c:${SHAPE_C}"></section>`);
+  el.appendChild(topBar({ back: 'shapes', title: T('look'), icon: 'shape:circle', colour: SHAPE_C }));
+  const stage = h(`<main class="stage"></main>`);
+  const grid = h(`<div class="word-grid shape-grid scroll"></div>`);
+  const open = (i) => {
+    const k = SHAPES[i];
+    Store.played('shapes:shapeLook'); grid.children[i].classList.add('seen');
+    const things = SHAPE_THINGS.filter(([, s]) => s === k).map(([o]) => o);
+    const extra = things.length ? `<div class="spot-things">${things.map((o) => `<button class="spot-thing" data-obj="${o}" aria-label="${word(o)}">${art(o)}</button>`).join('')}</div>` : '';
+    const o = spotlight({ key: 'shape:' + k, title: `<span class="first" style="color:${shapeColour(k)}">${k[0]}</span>${k.slice(1)}`, extra, speech: [T('thisIs'), EN(k)], cls: 'shape-spot',
+      prev: () => open((i - 1 + SHAPES.length) % SHAPES.length), next: () => open((i + 1) % SHAPES.length) });
+    $$('.spot-thing', o).forEach((b) => onTap(b, () => { b.classList.remove('boing'); void b.offsetWidth; b.classList.add('boing'); Audio.say([EN(thingSentence(b.dataset.obj, k))]); }, { sound: 'pop' }));
+    setGuide('point', `${T('thisIs')} ${k}`);
+  };
+  SHAPES.forEach((k, i) => {
+    const c = h(`<button class="word-card" data-key="${k}" aria-label="${k}" style="--sc:${shapeColour(k)}"><span class="wc-art">${art('shape:' + k)}</span><span class="wc-word">${k}</span></button>`);
+    onTap(c, () => open(i), { sound: 'pop' });
+    grid.appendChild(c);
+  });
+  stage.appendChild(grid);
+  el.appendChild(stage);
+  el.appendChild(guide('point', T('tapShape')));
+  el._enter = () => Audio.say([T('tapShape')]);
+  return el;
+};
+
+/* One quiz engine for both shape games: `ask(q)` gives the question, three shape cards are the answers. */
+function shapeQuiz({ screen, back, title, icon, kind }) {
+  const el = h(`<section class="activity shape-quiz ${kind}" style="--c:${SHAPE_C}"></section>`);
+  el.appendChild(topBar({ back, title, icon, colour: SHAPE_C }));
+  const stage = h(`<main class="stage"></main>`);
+  const ROUND = 5;
+  const stars = starsRow(ROUND);
+  const prompt = h(`<button class="prompt" aria-label="Again"><span class="prompt-say">${ICON.speaker}</span><span class="prompt-word"></span></button>`);
+  const scene = h(`<div class="scene shape-scene"></div>`);
+  const area = h(`<div class="quiz-area"></div>`);
+  stage.append(stars, prompt);
+  if (kind === 'match') stage.append(h(`<div class="q-row"></div>`)), stage.lastChild.append(scene, area);
+  else stage.append(area);
+  el.appendChild(stage);
+  el.appendChild(guide('think', ''));
+  const qs = kind === 'match' ? shuffle(SHAPE_THINGS).slice(0, ROUND) : shuffle(CORE_SHAPES).slice(0, ROUND).map((s) => [null, s]);
+  let q = 0, ask = [];
+  onTap(prompt, () => Audio.say(ask), { sound: null });
+  const next = () => {
+    if (q >= ROUND) { Store.played('shapes:' + screen); return roundEnd({ stars: ROUND, onAgain: () => go(screen), onHome: () => go('shapes') }); }
+    const [obj, k] = qs[q];
+    const others = shuffle(CORE_SHAPES.filter((s) => s !== k)).slice(0, 2);
+    area.innerHTML = ''; area.dataset.answer = k;
+    if (obj) {
+      scene.innerHTML = `<button class="shape-thing" aria-label="${word(obj)}">${art(obj)}</button>`;
+      onTap($('.shape-thing', scene), () => Audio.say(ask), { sound: 'pop' });
+      ask = [T('whatShape'), EN(spoken(obj))];
+      $('.prompt-word', prompt).textContent = T('whatShape');
+    } else {
+      ask = [T('showMe'), EN(k)];
+      $('.prompt-word', prompt).innerHTML = `${T('showMe')} <b style="color:${shapeColour(k)}">${k}</b>`;
+    }
+    setGuide('think', obj ? T('whatShape') : T('tapShape'));
+    Audio.say(ask);
+    runChoice({
+      stage: area, cls: 'shapes', choices: shuffle([k, ...others]).map((s) => ({ key: s })),
+      render: (c) => art('shape:' + c.key, 'ch-art'),
+      isRight: (c) => c.key === k,
+      onRight: () => {
+        App.busy = true; fillStar(stars, q);
+        const praise = tPick('praise');
+        celebrate({ text: k });
+        setGuide(pick(['jump', 'cheer']), `${praise} ${obj ? thingSentence(obj, k) : k + '!'}`);
+        Audio.say([praise, EN(obj ? thingSentence(obj, k) : k)]);
+        q++; later(() => { App.busy = false; next(); }, 3000 + Dog.extra());
+      },
+      onMiss: () => { const enc = tPick('encourage'); setGuide('wave', enc, 'wiggle'); Audio.say([enc, ...ask]); },
+    });
+  };
+  el._enter = next;
+  return el;
+}
+SCREENS.shapeFind = () => shapeQuiz({ screen: 'shapeFind', back: 'shapes', title: T('find'), icon: 'shape:heart', kind: 'find' });
+SCREENS.shapeMatch = () => shapeQuiz({ screen: 'shapeMatch', back: 'shapes', title: T('match'), icon: 'pizza', kind: 'match' });
+
+
+/* ===== src/84-days.js ===== */
+/* Lea Learns — Days of the week. Every day keeps its own colour and a little routine picture, today is
+   always highlighted from the device date, and the week can be sung in order. Day names are English. */
+const DAYS_C = 'var(--days-c, #fb8c00)';
+const todayIs = (i) => `Today is ${DAYS[i].k}!`;
+
+function dayCard(d, i, { tag = 'button', today = todayIndex() } = {}) {
+  return `<${tag} class="day-card${i === today ? ' today' : ''}" data-day="${i}" style="--dc:${d.c}" aria-label="${d.k}">
+    ${i === today ? `<span class="day-today">${ICON.star}<i>${T('today')}</i></span>` : ''}
+    <span class="day-art">${art(d.cue)}</span><span class="day-name"><b>${d.k.slice(0, 2)}</b>${d.k.slice(2)}</span></${tag}>`;
+}
+const dayTitle = (d) => `<span class="first" style="color:${d.c}">${d.k[0]}</span>${d.k.slice(1)}`;
+
+SCREENS.days = () => {
+  const el = h(`<section class="activity days-home" style="--c:${DAYS_C}"></section>`);
+  el.appendChild(topBar({ back: 'home', title: T('days'), icon: 'calendar', colour: DAYS_C }));
+  const stage = h(`<main class="stage"></main>`);
+  const t = DAYS[todayIndex()];
+  modeTiles(stage, [
+    { go: 'dayLook', name: T('look'), html: `<span class="nm-pics day-dots">${DAYS.map((d) => `<i style="background:${d.c}"></i>`).join('')}</span>`, say: T('daysWeek') },
+    { go: 'daySing', name: T('sing'), html: `<span class="nm-pics"><b>♪</b>${art('calendar')}<b>♫</b></span>`, say: T('singDays') },
+    { go: 'dayNext', name: T('whatNext'), html: `<span class="nm-pics day-dots next"><i style="background:${DAYS[0].c}"></i><i style="background:${DAYS[1].c}"></i><b class="q">?</b></span>`, say: T('whatNext') },
+  ], 'days:');
+  el.appendChild(stage);
+  el.appendChild(guide('point', `${T('today')}: ${t.k}`));
+  el._enter = () => Audio.say([T('daysWeek'), EN(todayIs(todayIndex()))]);
+  return el;
+};
+
+SCREENS.dayLook = () => {
+  const ti = todayIndex();
+  const el = h(`<section class="activity day-look" style="--c:${DAYS_C}"></section>`);
+  el.appendChild(topBar({ back: 'days', title: T('look'), icon: 'calendar', colour: DAYS_C }));
+  const stage = h(`<main class="stage"></main>`);
+  const banner = h(`<button class="today-banner" style="--dc:${DAYS[ti].c}" aria-label="${todayIs(ti)}"><span class="tb-star">${ICON.star}</span><span>${T('today')}: <b>${DAYS[ti].k}</b></span><span class="prompt-say">${ICON.speaker}</span></button>`);
+  const week = h(`<div class="week">${DAYS.map((d, i) => dayCard(d, i, { today: ti })).join('')}</div>`);
+  stage.append(banner, week);
+  el.appendChild(stage);
+  el.appendChild(guide('point', T('tapDay')));
+  onTap(banner, () => { setGuide('cheer', todayIs(ti)); Audio.say([EN(todayIs(ti))]); }, { sound: 'sparkle' });
+  const open = (i) => {
+    const d = DAYS[i];
+    Store.played('days:dayLook');
+    spotlight({ key: d.cue, title: dayTitle(d), sub: i === ti ? `⭐ ${T('today')}` : '', speech: i === ti ? [EN(d.k), EN(todayIs(i))] : [EN(d.k)], cls: 'day-spot',
+      prev: () => open((i + 6) % 7), next: () => open((i + 1) % 7) });
+    setGuide('point', d.k);
+  };
+  $$('.day-card', week).forEach((c) => onTap(c, () => open(+c.dataset.day), { sound: 'pop' }));
+  el._enter = () => Audio.say([T('daysWeek'), EN(todayIs(ti))]);
+  return el;
+};
+
+/* Sing-along: the days light up one after another while they are sung; then a little fanfare and an apple. */
+SCREENS.daySing = () => {
+  const ti = todayIndex();
+  const el = h(`<section class="activity day-sing" style="--c:${DAYS_C}"></section>`);
+  el.appendChild(topBar({ back: 'days', title: T('sing'), icon: 'calendar', colour: DAYS_C }));
+  const stage = h(`<main class="stage"></main>`);
+  const week = h(`<div class="week sing">${DAYS.map((d, i) => dayCard(d, i, { tag: 'div', today: ti })).join('')}</div>`);
+  const play = h(`<button class="round-btn sing-play" aria-label="${T('sing')}">${ICON.play}</button>`);
+  stage.append(week, play);
+  el.appendChild(stage);
+  el.appendChild(guide('sit', T('singDays')));
+  let token = 0, rewarded = false;
+  const live = (t) => t === token && el.isConnected;
+  const sing = async () => {
+    const my = ++token;
+    const cards = $$('.day-card', week);
+    cards.forEach((c) => c.classList.remove('lit', 'sung'));
+    play.classList.add('playing'); setGuide('cheer', T('singDays'));
+    Audio.say([T('singDays')]); await sleep(1500);
+    for (let lap = 0; lap < 2; lap++) {
+      for (let i = 0; i < 7; i++) {
+        if (!live(my)) return;
+        cards.forEach((c) => c.classList.remove('lit'));
+        cards[i].classList.add('lit', 'sung');
+        Audio.sfx('count', [1, 3, 5, 6, 5, 3, 8][i]);
+        Audio.say([EN(DAYS[i].k)]);
+        setGuide(i % 2 ? 'jump' : 'cheer', DAYS[i].k);
+        await sleep(lap ? 820 : 1000);
+      }
+      await sleep(500);
+    }
+    if (!live(my)) return;
+    cards.forEach((c) => c.classList.remove('lit'));
+    play.classList.remove('playing');
+    Audio.sfx('fanfare');
+    const praise = tPick('praise');
+    celebrate({ text: '♪ ♫', big: true });
+    setGuide('cheer', praise);
+    Audio.say([praise, EN(todayIs(ti))]);
+    Store.played('days:daySing');
+    if (!rewarded) { rewarded = true; Store.addApple(); Store.addStars(3); refreshApples(); }
+  };
+  onTap(play, sing, { sound: 'tap' });
+  el._enter = sing;
+  return el;
+};
+
+/* What comes next? Two days in order, then a gap: pick the day that follows (Sunday → Monday wraps round). */
+SCREENS.dayNext = () => {
+  const el = h(`<section class="activity day-next" style="--c:${DAYS_C}"></section>`);
+  el.appendChild(topBar({ back: 'days', title: T('whatNext'), icon: 'calendar', colour: DAYS_C }));
+  const stage = h(`<main class="stage"></main>`);
+  const ROUND = 5;
+  const stars = starsRow(ROUND);
+  const prompt = h(`<button class="prompt" aria-label="Again"><span class="prompt-say">${ICON.speaker}</span><span class="prompt-word">${T('whatNext')}</span></button>`);
+  const scene = h(`<div class="scene day-seq"></div>`);
+  const area = h(`<div class="quiz-area"></div>`);
+  const row = h(`<div class="q-row"></div>`); row.append(scene, area);
+  stage.append(stars, prompt, row);
+  el.appendChild(stage);
+  el.appendChild(guide('think', ''));
+  const starts = shuffle([0, 1, 2, 3, 4, 5, 6]).slice(0, ROUND);
+  let q = 0, ask = [];
+  onTap(prompt, () => Audio.say(ask), { sound: null });
+  const next = () => {
+    if (q >= ROUND) { Store.played('days:dayNext'); return roundEnd({ stars: ROUND, onAgain: () => go('dayNext'), onHome: () => go('days') }); }
+    const a = starts[q], b = (a + 1) % 7, ans = (a + 2) % 7;
+    scene.innerHTML = `${dayCard(DAYS[a], a, { tag: 'div', today: -1 })}<span class="seq-arrow">${ICON.next}</span>${dayCard(DAYS[b], b, { tag: 'div', today: -1 })}<span class="seq-arrow">${ICON.next}</span><div class="day-card gap"><b>?</b></div>`;
+    area.innerHTML = ''; area.dataset.answer = DAYS[ans].k;
+    ask = [EN(DAYS[a].k), EN(DAYS[b].k), T('whatNext')];
+    setGuide('think', T('whatNext'));
+    Audio.say(ask);
+    const others = shuffle([0, 1, 2, 3, 4, 5, 6].filter((i) => i !== a && i !== b && i !== ans)).slice(0, 2);
+    runChoice({
+      stage: area, cls: 'days', choices: shuffle([ans, ...others]).map((i) => ({ key: DAYS[i].k, i })),
+      render: (c) => `<span class="ch-day" style="--dc:${DAYS[c.i].c}"><span class="day-art">${art(DAYS[c.i].cue)}</span><b>${c.key}</b></span>`,
+      isRight: (c) => c.i === ans,
+      onRight: () => {
+        App.busy = true; fillStar(stars, q);
+        const gap = $('.gap', scene); gap.outerHTML = dayCard(DAYS[ans], ans, { tag: 'div', today: -1 }).replace('day-card', 'day-card filled');
+        const praise = tPick('praise');
+        celebrate({ text: DAYS[ans].k });
+        setGuide(pick(['jump', 'cheer']), `${praise} ${DAYS[ans].k}!`);
+        Audio.say([praise, EN(DAYS[a].k), EN(DAYS[b].k), EN(DAYS[ans].k)]);
+        q++; later(() => { App.busy = false; next(); }, 3600 + Dog.extra());
+      },
+      onMiss: () => { const enc = tPick('encourage'); setGuide('wave', enc, 'wiggle'); Audio.say([enc, ...ask]); },
+    });
+  };
+  el._enter = next;
+  return el;
+};
+
+
 /* ===== src/85-parent.js ===== */
 /* Lea Learns — parent corner (hold the top-right corner for 3 seconds). Shown in the chosen interface language. */
 const PT = {
@@ -2513,7 +2891,10 @@ function openParent() {
   const firstTouch = () => { Audio.unlock(); document.removeEventListener('touchend', firstTouch, true); document.removeEventListener('click', firstTouch, true); };
   document.addEventListener('touchend', firstTouch, true); document.addEventListener('click', firstTouch, true);
   // Warm the character images so pose changes are instant.
+  // 1.3.x custom characters were vector drawings: move them to the nearest painted base (same name, outfit, hair colour).
+  Store.chars.forEach((c) => { if (!c.base) Store.saveChar(PAINT.fromVector(c)); });
   BUILTIN.forEach((who) => { const l = Store.look(who); if (l) PAINT.prepare(who, l); });
+  Store.chars.forEach((c) => { const v = PAINT.validChar(c); PAINT.prepare(v.base, v); });
   Object.keys(CHARACTERS).forEach((who) => POSES.forEach((p) => { const i = new Image(); i.src = poseSrc(p, who); }));
   document.documentElement.lang = lang();
   // Rotation / resize: CSS does the layout; screens with canvases or painted hotspots re-measure.

@@ -485,3 +485,111 @@ img.lea.wiggle { animation: wiggle .6s; }
 }
 @media (orientation: landscape) and (max-height: 520px) { .cr-tab { min-height: 60px; } .cr-tab-l { display: none; } .cr-name { min-height: 50px; font-size: 20px; } }
 .home-dog { right: calc(var(--sar) + 2.5vw + clamp(72px, 11vmin, 104px) + 16px); } /* Bacon sits beside the pencil, not on it */
+
+/* ---------- v1.4.0: five lollipops on the cloud (Words, ABC, Numbers, Shapes, Days) ---------- */
+.lolly { --d: clamp(84px, 14.5vmin, 160px); }
+.lolly-label { font-size: clamp(17px, 3vmin, 28px); padding: 5px 14px; }
+.lolly:nth-child(4) { animation-delay: .24s; } .lolly:nth-child(5) { animation-delay: .32s; }
+.lolly:nth-child(4) .lolly-disc { animation-delay: -.6s; } .lolly:nth-child(5) .lolly-disc { animation-delay: -1.9s; }
+.lolly-disc svg.mini { width: 34%; height: 34%; }
+.lolly-disc svg.mini + svg.mini { margin-left: -4%; }
+.l-shapes .lolly-label { color: #2e8b3a; } .l-days .lolly-label { color: #e07800; }
+@media (orientation: portrait) {
+  .front { flex-wrap: wrap; justify-content: center; row-gap: 0; }
+  .hero { margin-right: auto; }
+  .lollies { order: 1; width: 100%; justify-content: space-evenly; flex-wrap: wrap; row-gap: 8px; }
+  .lolly { --d: clamp(84px, 15vw, 150px); }
+}
+@media (orientation: portrait) and (max-width: 560px) {
+  .lollies { column-gap: 5vw; }
+  .lolly { --d: clamp(80px, 23vw, 104px); }
+  .lolly-label { font-size: 17px; padding: 3px 10px; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .lolly { --d: clamp(66px, 19vh, 96px); } .lolly-label { font-size: 15px; padding: 3px 9px; }
+  .lollies { gap: 10px; }
+}
+
+/* ---------- v1.4.0: Shapes ---------- */
+.shape-grid .word-card { border-color: color-mix(in srgb, var(--sc) 22%, transparent); }
+.shape-grid .wc-word { color: var(--sc); font-weight: 700; }
+.spot-things { display: flex; gap: clamp(10px, 2.4vmin, 24px); justify-content: center; }
+.spot-thing { width: clamp(72px, 13vmin, 120px); height: clamp(72px, 13vmin, 120px); padding: 8px; background: #fff7ec; border-radius: 24px; box-shadow: var(--shadow); }
+.spot-thing svg { width: 100%; height: 100%; }
+.shape-scene { flex: 1.1; }
+.shape-thing { height: 100%; max-height: min(34vmin, 300px); aspect-ratio: 1; padding: 4%; }
+.shape-thing svg { width: 100%; height: 100%; animation: idle 3s infinite ease-in-out; }
+.choices.shapes .choice { padding: 5%; }
+
+/* ---------- v1.4.0: Days of the week (each day keeps one colour) ---------- */
+.day-dots { gap: 1vmin; flex-wrap: wrap; max-width: 30vmin; }
+.day-dots i { width: clamp(16px, 3.2vmin, 32px); height: clamp(16px, 3.2vmin, 32px); border-radius: 50%; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .12); }
+.day-dots.next i { width: clamp(30px, 6vmin, 60px); height: clamp(30px, 6vmin, 60px); }
+.today-banner { align-self: center; display: flex; align-items: center; gap: 12px; background: var(--dc); color: #fff; border-radius: 999px; padding: 8px 10px 8px 14px; box-shadow: var(--shadow), inset 0 -5px 0 rgba(0, 0, 0, .12); font-size: clamp(22px, 4vmin, 38px); font-weight: 600; min-height: var(--tap); flex: none; }
+.today-banner b { font-weight: 700; }
+.today-banner .tb-star svg, .day-today svg { width: 1.2em; height: 1.2em; display: block; }
+.today-banner .prompt-say { background: #ffffff40; }
+.week { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: clamp(8px, 1.6vmin, 18px); align-items: center; padding: 3vmin 4px 4px; }
+.day-card { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: var(--dc); color: #fff; border-radius: var(--r); padding: 10px 4px; box-shadow: var(--shadow), inset 0 -6px 0 rgba(0, 0, 0, .12); min-width: 0; aspect-ratio: 3 / 4; max-height: 100%; transition: transform .25s, opacity .25s, filter .25s; }
+.day-art { width: 74%; aspect-ratio: 1; background: #fff; border-radius: 50%; padding: 10%; flex: none; }
+.day-art svg { width: 100%; height: 100%; display: block; }
+.day-name { font-size: clamp(13px, 2.3vmin, 24px); font-weight: 600; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.day-name b { font-weight: 700; font-size: 1.25em; }
+.day-card.today { transform: scale(1.08); box-shadow: 0 0 0 5px #fff, 0 0 0 10px var(--dc), var(--shadow); z-index: 1; }
+.day-today { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 3px; background: #ffd54f; color: #7a4b00; border-radius: 999px; padding: 2px 10px 2px 6px; font-size: clamp(13px, 2vmin, 20px); font-weight: 700; box-shadow: 0 3px 6px rgba(0, 0, 0, .15); white-space: nowrap; }
+.day-today i { font-style: normal; }
+.day-spot .spot-art { background: #fff7ec; border-radius: 50%; padding: 4%; }
+.week.sing .day-card { opacity: .62; }
+.week.sing .day-card.sung { opacity: 1; }
+.week.sing .day-card.lit { opacity: 1; transform: translateY(-10%) scale(1.16); filter: saturate(1.2) brightness(1.05); z-index: 2; }
+.sing-play { align-self: center; width: clamp(84px, 15vmin, 130px); height: clamp(84px, 15vmin, 130px); background: var(--orange, #fb8c00); color: #fff; flex: none; }
+.sing-play.playing { animation: pulse 1s infinite ease-in-out; }
+@keyframes pulse { 50% { transform: scale(1.08); } }
+.day-seq { gap: clamp(6px, 2vmin, 22px); flex: 1.2; }
+.day-seq .day-card { height: 100%; max-height: min(34vmin, 260px); width: auto; }
+.day-seq .seq-arrow { width: clamp(22px, 4vmin, 40px); color: #c58a00; flex: none; }
+.day-seq .seq-arrow svg { width: 100%; display: block; }
+.day-card.gap { background: #fff; border: 5px dashed #e0b45c; box-shadow: none; color: #e0b45c; }
+.day-card.gap b { font-size: clamp(48px, 10vmin, 100px); font-weight: 700; line-height: 1; }
+.day-card.filled { animation: boing .6s cubic-bezier(.3, 1.8, .5, 1); }
+.choices.days .choice { padding: 0; overflow: hidden; }
+.ch-day { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4%; background: var(--dc); color: #fff; padding: 8%; }
+.ch-day .day-art { width: 64%; }
+.ch-day b { font-size: clamp(14px, 3vmin, 28px); font-weight: 700; white-space: nowrap; }
+@media (orientation: portrait) {
+  .week { grid-template-columns: repeat(4, minmax(0, 1fr)); align-content: center; row-gap: 4vmin; }
+  .day-name { font-size: clamp(12px, 3vw, 22px); }
+  .day-name b { font-size: 1.15em; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .week { padding-top: 16px; }
+  .day-card { padding: 4px; gap: 2px; }
+  .day-name { font-size: 13px; }
+  .ch-day .day-art { width: 52%; }
+}
+
+/* ---------- v1.4.0: Leo (third ready-made painted character) ---------- */
+.picker[data-who="leo"] .picker-name { color: #1e6fd0; }
+.hero[data-who="leo"] .swap { border: 4px solid #64b5f6; }
+.k-base .cr-opt img { object-position: 50% 0; }
+/* scene + answers: stacked normally, side by side on short (phone) landscape so the answers stay big */
+.q-row { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: clamp(8px, 1.6vmin, 18px); }
+@media (orientation: landscape) and (max-height: 520px) {
+  .q-row { flex-direction: row; align-items: stretch; }
+  .q-row .scene { flex: 0.9; min-width: 0; }
+  .q-row .quiz-area { flex: 1.5; min-width: 0; }
+  .q-row .scene.day-seq { flex: 1.25; padding: 8px; gap: 6px; }
+  .q-row:has(.day-seq) .quiz-area { flex: 1.35; }
+  .q-row .day-seq .day-card { max-height: 100%; height: auto; width: 31%; flex: 0 0 31%; aspect-ratio: 3 / 4; padding: 6%; justify-content: center; }
+  .q-row .day-seq .seq-arrow { display: none; }
+  .q-row .ch-day b { font-size: clamp(11px, 3.2vh, 15px); }
+  .q-row .ch-day .day-art { width: 72%; }
+  .q-row .day-seq .day-card .day-art { width: 86%; }
+  .q-row .day-seq .day-card.gap b { font-size: 9vh; }
+  .q-row .day-seq .day-name { display: none; }
+  .q-row .shape-thing { max-height: 100%; }
+}
+.home-dog { height: clamp(80px, 15vmin, 170px); } /* v1.4.0: placed above the pencil by 50-home.js */
+/* landscape: keep the pencil's column (bottom-right) free so the five lollipops never run under it */
+@media (orientation: landscape) { .front { padding-right: calc(clamp(72px, 11vmin, 104px) + .5vw + 18px); } }
+@media (orientation: landscape) and (max-height: 520px) { .lolly { --d: clamp(74px, 19vh, 96px); } .lollies { gap: 8px; } .front { gap: 1vw; } }
