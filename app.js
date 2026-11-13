@@ -1,7 +1,7 @@
-/* Lea Learns 1.3.1 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.3.2 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.3.2';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -1636,11 +1636,12 @@ SCREENS.home = ({ hello } = {}) => {
       <h1 class="logo small"><span class="l1">Lea</span> <span class="l2">Learns</span></h1>
       <div class="world-top-right"><div class="home-score"><div class="apples-chip">${art('apple')}<b>${d.apples}</b></div><div class="stars-chip">${ICON.star}<b>${d.stars}</b></div></div></div>
     </header>
+    <button class="edit-look" aria-label="${T('editLook')}"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M30 8 C34 4 44 14 40 18 L20 38 L8 40 L10 28 Z" fill="#ffd54f" stroke="#4a2f27" stroke-width="3.5" stroke-linejoin="round"/><path d="M10 28 L20 38" stroke="#4a2f27" stroke-width="3.5"/><path d="M28 10 L38 20" stroke="#4a2f27" stroke-width="3.5"/><path d="M30 8 C34 4 44 14 40 18 L36 22 L26 12 Z" fill="#ff6fa3" stroke="#4a2f27" stroke-width="3.5" stroke-linejoin="round"/></svg></button>
     <button class="door" data-world="door" aria-label="${T('words')}"><span class="door-glow"></span></button>
     <div class="front">
       <div class="hero" data-who="${player()}">${leaImg('front', 'hero-lea')}<div class="bubble hero-bubble" hidden></div>
         <button class="swap" aria-label="${playerName(other)}">${leaImg('front', 'swap-img', other)}</button>
-        <button class="edit-look" aria-label="${T('editLook')}"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M30 8 C34 4 44 14 40 18 L20 38 L8 40 L10 28 Z" fill="#ffd54f" stroke="#4a2f27" stroke-width="3.5" stroke-linejoin="round"/><path d="M10 28 L20 38" stroke="#4a2f27" stroke-width="3.5"/><path d="M28 10 L38 20" stroke="#4a2f27" stroke-width="3.5"/><path d="M30 8 C34 4 44 14 40 18 L36 22 L26 12 Z" fill="#ff6fa3" stroke="#4a2f27" stroke-width="3.5" stroke-linejoin="round"/></svg></button></div>
+</div>
       <nav class="lollies">
         ${lolly('l-words', art('apple'), T('words'), '#ff6b81')}
         ${lolly('l-abc', '<b style="--c:#e53935">A</b><b style="--c:#1e88e5">B</b><b style="--c:#43a047">C</b>', T('abc'), '#b388ff')}
@@ -1668,9 +1669,19 @@ SCREENS.home = ({ hello } = {}) => {
   onTap($('.edit-look', el), () => go('creator', { id: player() }), { sound: 'open' });
   const dog = $('.home-dog', el);
   onTap(dog, () => Dog.show(), { sound: null });
-  el._layout = () => placeOnWorld(el);
+  /* Pencil lives on the other side of the candy house (bottom-right). In portrait the lollipops fill the bottom row,
+     so it sits just above the Numbers lollipop instead. */
+  const pen = $('.edit-look', el);
+  const placePen = () => {
+    pen.style.bottom = '';
+    if (innerWidth > innerHeight) return;
+    const l = $('.l-num', el); if (!l) return;
+    const r = l.getBoundingClientRect(); if (!r.height) return;
+    pen.style.bottom = Math.round(innerHeight - r.top + 14) + 'px';
+  };
+  el._layout = () => { placeOnWorld(el); placePen(); };
   el._enter = () => {
-    placeOnWorld(el);
+    placeOnWorld(el); placePen(); later(placePen, 700);
     hello ? talk(T('hi', playerName()), [hiSpeech(), T('whatPlay')]) : talk(T('whatPlay'));
     // Sometimes the dog is already sitting on the cloud; sometimes he bursts in a bit later.
     if (Math.random() < 0.45) later(() => { dog.hidden = false; dog.classList.add('in'); }, 2200);
