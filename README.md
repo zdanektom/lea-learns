@@ -56,7 +56,7 @@ The interface language changes the menus and the guide’s hints. **The vocabula
 
 ## Speech and sound
 
-* Speech is a bright, playful little-girl voice (pre-recorded, so it sounds the same on every iPad), in the style of a girl in a children’s cartoon. Guide phrases follow the interface language; the English words being learnt stay in English. If a clip is missing, the device’s own female voice is used as a fallback.
+* Speech is pre-recorded, so it sounds the same on every iPad. English is spoken by a clear, native British voice, and letters are said as English letter names (ay, bee, see … zed). Polish and Russian guide phrases use bright, playful voices. Guide phrases follow the interface language; the English words and letters being learnt stay in English. If a clip is missing, the device’s own female voice is used as a fallback.
 * Cheerful original background music (a gentle music-box and flute loop) plays after the first tap, and gets quieter while someone is speaking. You can turn it off in the parent corner.
 * All sound effects (chimes, pops, Bacon’s “woof”) are generated with the Web Audio API.
 * **iOS notes:**
