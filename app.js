@@ -1,15 +1,15 @@
-/* Lea Learns 1.2.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.3.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
 const Store = (() => {
   const KEY = 'lea-learns:v1';
-  const fresh = () => ({ apples: 0, stars: 0, rounds: 0, seenWords: {}, seenLetters: {}, played: {}, settings: { player: null, sound: true, music: true, voice: true, lang: 'pl', range: 20 } });
+  const fresh = () => ({ apples: 0, stars: 0, rounds: 0, seenWords: {}, seenLetters: {}, played: {}, chars: [], looks: {}, settings: { player: null, sound: true, music: true, voice: true, lang: 'en', range: 20 } });
   let d;
-  try { d = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY) || '{}')); d.settings = Object.assign(fresh().settings, d.settings || {}); } catch (e) { d = fresh(); }
+  try { d = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY) || '{}')); d.settings = Object.assign(fresh().settings, d.settings || {}); if (!Array.isArray(d.chars)) d.chars = []; if (!d.looks || typeof d.looks !== 'object') d.looks = {}; } catch (e) { d = fresh(); }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} };
   return {
     get data() { return d; },
@@ -20,7 +20,14 @@ const Store = (() => {
     seeWord(k) { d.seenWords[k] = 1; save(); },
     seeLetter(l) { d.seenLetters[l] = 1; save(); },
     played(id) { d.played[id] = (d.played[id] || 0) + 1; save(); },
-    reset() { const s = d.settings; d = fresh(); d.settings = s; save(); },
+    /* Custom characters (made in "Create your character") and edited looks for Lea / Ines. */
+    get chars() { return d.chars; },
+    char(id) { return d.chars.find((c) => c.id === id) || null; },
+    saveChar(c) { const i = d.chars.findIndex((x) => x.id === c.id); if (i < 0) d.chars.push(c); else d.chars[i] = c; save(); },
+    deleteChar(id) { d.chars = d.chars.filter((c) => c.id !== id); if (d.settings.player === id) d.settings.player = 'lea'; save(); },
+    look(who) { return d.looks[who] || null; },
+    setLook(who, p) { if (p) d.looks[who] = p; else delete d.looks[who]; save(); },
+    reset() { const s = d.settings, c = d.chars, l = d.looks; d = fresh(); d.settings = s; d.chars = c; d.looks = l; save(); },
   };
 })();
 
@@ -90,6 +97,8 @@ const COUNT_THINGS = [
 const LANGS = { pl: { label: 'Polski', voice: 'pl' }, en: { label: 'English', voice: 'en' }, ru: { label: 'Русский', voice: 'ru' } };
 const STR = {
   en: {
+    creator: 'Create your character!', newChar: 'New', editLook: 'Change my look', surprise: 'Surprise!', cluck: 'Cluck cluck!', roar: 'Roar!', likeBefore: 'Just like before!',
+    crAsk: { gender: 'Girl or boy?', hair: 'Choose a hairstyle!', hairColour: 'Choose a hair colour!', eyes: 'Choose an eye colour!', face: 'Choose a face shape!', skin: 'Choose a skin colour!', body: 'Choose a body shape!', outfit: 'Choose an outfit!', acc: 'Choose something extra!', name: 'What’s my name?' },
     words: 'Words', abc: 'ABC', numbers: 'Numbers', whosPlaying: 'Who’s playing?',
     food: 'Food', animals: 'Animals', colours: 'Colours', home: 'Home', nature: 'Nature', body: 'Body',
     look: 'Look', find: 'Find', sayIt: 'Say', trace: 'Trace', count: 'Count', howMany: 'How many?', sums: '+  −',
@@ -103,6 +112,8 @@ const STR = {
     loveApples: 'I love apples!', hello: 'Hello!', letsPlay: 'Let’s play!', woof: 'Woof woof!', achoo: 'A-choo!', countTogether: 'Let’s count together!', hereDog: 'Here’s Bacon!',
   },
   pl: {
+    creator: 'Stwórz swoją postać!', newChar: 'Nowa postać', editLook: 'Zmień wygląd', surprise: 'Niespodzianka!', cluck: 'Ko ko ko!', roar: 'Wrrr!', likeBefore: 'Jak dawniej!',
+    crAsk: { gender: 'Dziewczynka czy chłopiec?', hair: 'Wybierz fryzurę!', hairColour: 'Wybierz kolor włosów!', eyes: 'Wybierz kolor oczu!', face: 'Wybierz kształt buzi!', skin: 'Wybierz kolor skóry!', body: 'Wybierz sylwetkę!', outfit: 'Wybierz ubranie!', acc: 'Wybierz dodatek!', name: 'Jak mam na imię?' },
     words: 'Słowa', abc: 'ABC', numbers: 'Liczby', whosPlaying: 'Kto gra?',
     food: 'Jedzenie', animals: 'Zwierzęta', colours: 'Kolory', home: 'Dom', nature: 'Przyroda', body: 'Ciało',
     look: 'Patrz', find: 'Pokaż', sayIt: 'Powiedz', trace: 'Rysuj', count: 'Liczenie', howMany: 'Ile?', sums: '+  −',
@@ -116,6 +127,8 @@ const STR = {
     loveApples: 'Kocham jabłka!', hello: 'Cześć!', letsPlay: 'Bawimy się!', woof: 'Hau hau!', achoo: 'A-psik!', countTogether: 'Policzmy razem!', hereDog: 'To Bacon!',
   },
   ru: {
+    creator: 'Создай своего персонажа!', newChar: 'Новый', editLook: 'Изменить образ', surprise: 'Сюрприз!', cluck: 'Ко-ко-ко!', roar: 'Р-р-р!', likeBefore: 'Как раньше!',
+    crAsk: { gender: 'Девочка или мальчик?', hair: 'Выбери причёску!', hairColour: 'Выбери цвет волос!', eyes: 'Выбери цвет глаз!', face: 'Выбери форму лица!', skin: 'Выбери цвет кожи!', body: 'Выбери фигуру!', outfit: 'Выбери одежду!', acc: 'Выбери украшение!', name: 'Как меня зовут?' },
     words: 'Слова', abc: 'ABC', numbers: 'Числа', whosPlaying: 'Кто играет?',
     food: 'Еда', animals: 'Животные', colours: 'Цвета', home: 'Дом', nature: 'Природа', body: 'Тело',
     look: 'Смотри', find: 'Покажи', sayIt: 'Скажи', trace: 'Обведи', count: 'Счёт', howMany: 'Сколько?', sums: '+  −',
@@ -132,11 +145,13 @@ const STR = {
 const DOG_NAME = 'Bacon';
 /* Character names as shown/spoken per interface language. */
 const NAMES = { lea: { en: 'Lea', pl: 'Lea', ru: 'Лея', sayEn: 'Lea' }, ines: { en: 'Ines', pl: 'Ines', ru: 'Инес', sayEn: 'Eeness' } };
-const lang = () => (STR[Store.settings.lang] ? Store.settings.lang : 'pl');
+const lang = () => (STR[Store.settings.lang] ? Store.settings.lang : 'en');
 const T = (k, ...a) => { const v = STR[lang()][k] ?? STR.en[k]; return typeof v === 'function' ? v(...a) : v; };
 const tPick = (k) => pick(T(k));
 /* Mark a piece of speech as English target vocabulary (always spoken with an English voice). */
 const EN = (t) => ({ en: t });
+/* A custom name: no recorded clip exists, so it is spoken by the device voice in the interface language. */
+const NAME = (t) => ({ name: t });
 
 
 /* ===== src/20-art.js ===== */
@@ -563,6 +578,322 @@ const ICON = {
 };
 
 
+/* ===== src/22-avatar.js ===== */
+/* Lea Learns — parametric characters ("Create your character"). Every look is drawn here as an SVG,
+   turned into a data: URL and used in the same <img class="lea"> as the illustrated Lea and Ines,
+   so every screen, pose swap and celebration works unchanged. No photos, no external files. */
+const AV = (() => {
+  const HAIR = ['pigtails', 'braids', 'long', 'bob', 'ponytail', 'bun', 'curly', 'short', 'spiky'];
+  const HAIR_COLOURS = {
+    brunette: '#6b4226', black: '#2e2422', blonde: '#e3b562', ginger: '#d9772b', red: '#c0392b', silver: '#e9e4dc',
+    pink: '#ff7eb6', blue: '#4aa3ff', purple: '#9b6dd6', neon: '#7dff3a', rainbow: 'rainbow',
+  };
+  const EYES = { brown: '#6b3e1f', dark: '#3b2416', blue: '#3d8fe0', green: '#3fa14a', hazel: '#a07a2c', grey: '#7d8d9c', violet: '#9b59b6' };
+  const FACES = ['round', 'oval', 'heart', 'square'];
+  const SKIN = { porcelain: '#ffe6d5', light: '#fbd6bb', peach: '#f1c09a', tan: '#d9a273', brown: '#a8714a', deep: '#76482b' };
+  const BODIES = { slim: [0.86, 1], average: [1, 1], round: [1.22, 1], tall: [0.95, 1.1], small: [1.06, 0.9] };
+  const OUTFITS = ['flowerPink', 'flowerTeal', 'appleDress', 'princess', 'polka', 'rainbow', 'tee', 'dungarees', 'sporty',
+    'pirate', 'superhero', 'astronaut', 'chicken', 'dino', 'bunny', 'bear', 'banana'];
+  const FUNNY = ['pirate', 'superhero', 'astronaut', 'chicken', 'dino', 'bunny', 'bear', 'banana'];
+  const ACCS = ['none', 'headband', 'bow', 'flower', 'crown', 'hat', 'cap', 'glasses'];
+  const GIRL_NAMES = ['Mia', 'Zoe', 'Lily', 'Ola', 'Ana', 'Ella', 'Nina', 'Maja'];
+  const BOY_NAMES = ['Leo', 'Max', 'Tom', 'Oskar', 'Ben', 'Adam', 'Kuba', 'Noah'];
+  const PRESETS = {
+    lea: { gender: 'girl', hair: 'pigtails', hairColour: 'blonde', eyes: 'brown', face: 'round', skin: 'light', body: 'average', outfit: 'flowerPink', acc: 'headband' },
+    ines: { gender: 'girl', hair: 'braids', hairColour: 'brunette', eyes: 'brown', face: 'round', skin: 'light', body: 'average', outfit: 'flowerTeal', acc: 'none' },
+  };
+  const DEFAULT = { gender: 'girl', name: 'Mia', hair: 'bob', hairColour: 'ginger', eyes: 'green', face: 'round', skin: 'peach', body: 'average', outfit: 'appleDress', acc: 'bow' };
+  /* Gender only changes the suggestions it starts from — every hairstyle and outfit stays available. */
+  const GENDER_DEFAULTS = {
+    girl: { hair: 'pigtails', outfit: 'appleDress', acc: 'bow' },
+    boy: { hair: 'short', outfit: 'tee', acc: 'none' },
+  };
+  const GIRLISH_HAIR = ['pigtails', 'braids', 'long', 'bun'], DRESSES = ['flowerPink', 'flowerTeal', 'appleDress', 'princess', 'polka', 'rainbow'];
+
+  const valid = (p) => {
+    const o = Object.assign({}, DEFAULT, p || {});
+    if (!['girl', 'boy'].includes(o.gender)) o.gender = 'girl';
+    if (!HAIR.includes(o.hair)) o.hair = DEFAULT.hair;
+    if (!HAIR_COLOURS[o.hairColour]) o.hairColour = DEFAULT.hairColour;
+    if (!EYES[o.eyes]) o.eyes = DEFAULT.eyes;
+    if (!FACES.includes(o.face)) o.face = 'round';
+    if (!SKIN[o.skin]) o.skin = DEFAULT.skin;
+    if (!BODIES[o.body]) o.body = 'average';
+    if (!OUTFITS.includes(o.outfit)) o.outfit = DEFAULT.outfit;
+    if (!ACCS.includes(o.acc)) o.acc = 'none';
+    o.name = String(o.name || '').replace(/[<>&"]/g, '').trim().slice(0, 14);
+    return o;
+  };
+  const rnd = (a) => a[Math.floor(Math.random() * a.length)];
+  function random(keep = {}) {
+    const gender = keep.gender || rnd(['girl', 'boy']);
+    return valid(Object.assign({
+      gender, name: rnd(gender === 'boy' ? BOY_NAMES : GIRL_NAMES), hair: rnd(HAIR), hairColour: rnd(Object.keys(HAIR_COLOURS)), eyes: rnd(Object.keys(EYES)),
+      face: rnd(FACES), skin: rnd(Object.keys(SKIN)), body: rnd(Object.keys(BODIES)), outfit: rnd(OUTFITS), acc: rnd(ACCS),
+    }, keep));
+  }
+  function withGender(p, g) {
+    const o = Object.assign({}, p, { gender: g });
+    const d = GENDER_DEFAULTS[g];
+    if (g === 'boy') { if (GIRLISH_HAIR.includes(o.hair)) o.hair = d.hair; if (DRESSES.includes(o.outfit)) o.outfit = d.outfit; if (['bow', 'flower', 'headband'].includes(o.acc)) o.acc = d.acc; if (GIRL_NAMES.includes(o.name)) o.name = rnd(BOY_NAMES); }
+    else { if (['short', 'spiky'].includes(o.hair)) o.hair = d.hair; if (o.outfit === 'tee') o.outfit = d.outfit; if (BOY_NAMES.includes(o.name)) o.name = rnd(GIRL_NAMES); }
+    return o;
+  }
+
+  /* ---------- drawing ---------- */
+  const K = '#4a2f27';
+  const L = `stroke="${K}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"`;
+  const LT = `stroke="${K}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"`;
+  const shade = (hex, f) => { if (!/^#/.test(hex)) return hex; const n = parseInt(hex.slice(1), 16); const c = [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.max(0, Math.min(255, Math.round(f < 1 ? v * f : v + (255 - v) * (f - 1))))); return '#' + c.map((v) => v.toString(16).padStart(2, '0')).join(''); };
+
+  const OUT = {
+    flowerPink: { top: '#f8cdd3', pat: 'flowersP', sleeve: 'long', bottom: 'skirt', shoes: '#e0393b', frill: true },
+    flowerTeal: { top: '#3fa7a0', pat: 'daisies', sleeve: 'long', bottom: 'skirt', shoes: '#2f8c86', frill: true },
+    appleDress: { top: '#e53935', pat: 'apples', sleeve: 'short', bottom: 'skirt', shoes: '#7a4a2a', collar: '#fff' },
+    princess: { top: '#f7a8d0', pat: 'sparkles', sleeve: 'puff', bottom: 'gown', shoes: '#f0c040', grad: ['#ffc1e3', '#c79bf2'] },
+    polka: { top: '#3f6fd1', pat: 'dots', sleeve: 'short', bottom: 'skirt', shoes: '#e53935', collar: '#fff' },
+    rainbow: { top: '#fff', pat: 'rainbow', sleeve: 'short', bottom: 'skirt', shoes: '#9b6dd6' },
+    tee: { top: '#ffb300', sleeve: 'short', bottom: 'trousers', bottomFill: '#3f6fd1', shoes: '#e53935', shoe: 'sneaker', star: '#fff' },
+    dungarees: { top: '#ffffff', pat: 'stripesR', sleeve: 'short', bottom: 'trousers', bottomFill: '#4f86c6', bib: true, shoes: '#ffd54f', shoe: 'sneaker' },
+    sporty: { top: '#26a69a', sleeve: 'long', bottom: 'shorts', bottomFill: '#1e6f68', socks: '#fff', shoes: '#ff7043', shoe: 'sneaker', sportStripe: '#fff' },
+    pirate: { top: '#ffffff', pat: 'stripesR', sleeve: 'long', bottom: 'capri', bottomFill: '#3b3b46', shoes: '#2b2222', shoe: 'boot', vest: '#2b2b33', bandana: '#d32f2f', patch: true },
+    superhero: { top: '#2f6fe0', sleeve: 'long', bottom: 'trousers', bottomFill: '#2f6fe0', shoes: '#d32f2f', shoe: 'boot', cape: '#e53935', emblem: '#ffd54f', belt: '#ffd54f' },
+    astronaut: { top: '#f2f4f7', sleeve: 'long', bottom: 'onesie', bottomFill: '#f2f4f7', shoes: '#9aa6b2', shoe: 'boot', helmet: true, pack: '#b8c2cc', panel: true },
+    chicken: { top: '#ffd84d', sleeve: 'wing', bottom: 'chicken', bottomFill: '#ffd84d', legs: '#ff9f1c', shoes: '#ff9f1c', shoe: 'feet', hood: { fill: '#ffd84d', kind: 'chicken' } },
+    dino: { top: '#6cc24a', sleeve: 'long', bottom: 'onesie', bottomFill: '#6cc24a', belly: '#d7f0a8', shoes: '#4e9a34', shoe: 'paw', hood: { fill: '#6cc24a', kind: 'dino' }, tail: 'dino' },
+    bunny: { top: '#fbf7fb', sleeve: 'long', bottom: 'onesie', bottomFill: '#fbf7fb', belly: '#ffd1e3', shoes: '#ffd1e3', shoe: 'paw', hood: { fill: '#fbf7fb', kind: 'bunny' }, tail: 'pom' },
+    bear: { top: '#a8703f', sleeve: 'long', bottom: 'onesie', bottomFill: '#a8703f', belly: '#e9c79a', shoes: '#7a4f2a', shoe: 'paw', hood: { fill: '#a8703f', kind: 'bear' } },
+    banana: { top: '#ffe14d', sleeve: 'long', bottom: 'banana', bottomFill: '#ffe14d', legs: '#fff3b0', shoes: '#7a5a2a', shoe: 'sneaker', hood: { fill: '#ffe14d', kind: 'banana' } },
+  };
+
+  function defs(p, o) {
+    const hc = HAIR_COLOURS[p.hairColour];
+    let d = `<filter id="st" x="-25%" y="-15%" width="150%" height="130%"><feMorphology in="SourceAlpha" operator="dilate" radius="5" result="d"/><feFlood flood-color="#fff"/><feComposite in2="d" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+    if (hc === 'rainbow') d += `<linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">${['#ff4d6d', '#ff9f1c', '#ffe14d', '#5ed35e', '#4aa3ff', '#9b6dd6'].map((c, i) => `<stop offset="${(i / 5).toFixed(2)}" stop-color="${c}"/>`).join('')}</linearGradient>`;
+    if (o.grad) d += `<linearGradient id="og" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${o.grad[0]}"/><stop offset="1" stop-color="${o.grad[1]}"/></linearGradient>`;
+    d += `<pattern id="flowersP" width="34" height="34" patternUnits="userSpaceOnUse"><path d="M17 20 L17 30 M17 26 Q12 24 11 21 M17 26 Q22 24 23 21" stroke="#3f8f5a" stroke-width="2" fill="none"/>${[0, 72, 144, 216, 288].map((a) => `<circle cx="${(17 + Math.cos(a * Math.PI / 180 - 1.57) * 4.5).toFixed(1)}" cy="${(14 + Math.sin(a * Math.PI / 180 - 1.57) * 4.5).toFixed(1)}" r="3.6" fill="#7b4f9e"/>`).join('')}<circle cx="17" cy="14" r="2" fill="#fff3c4"/></pattern>`;
+    d += `<pattern id="daisies" width="34" height="34" patternUnits="userSpaceOnUse"><path d="M17 20 L17 30 M17 26 Q12 24 11 21 M17 26 Q22 24 23 21" stroke="#205e57" stroke-width="2" fill="none"/>${[0, 60, 120, 180, 240, 300].map((a) => `<circle cx="${(17 + Math.cos(a * Math.PI / 180) * 4.5).toFixed(1)}" cy="${(14 + Math.sin(a * Math.PI / 180) * 4.5).toFixed(1)}" r="3.2" fill="#fff"/>`).join('')}<circle cx="17" cy="14" r="2.4" fill="#f6b72a"/></pattern>`;
+    d += `<pattern id="apples" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M15 12 C12 9 7 10 7 15 C7 20 11 23 15 22 C19 23 23 20 23 15 C23 10 18 9 15 12 Z" fill="#fff3e0"/><path d="M15 12 L16 8" stroke="#7a4a2a" stroke-width="1.6"/><path d="M16 9 C18 6 21 6 22 7 C20 9 18 10 16 9 Z" fill="#7cc35a"/></pattern>`;
+    d += `<pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="3.2" fill="#fff"/><circle cx="15" cy="15" r="3.2" fill="#fff"/></pattern>`;
+    d += `<pattern id="sparkles" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M8 4 L9.5 8 L13 9 L9.5 10 L8 14 L6.5 10 L3 9 L6.5 8 Z" fill="#fff" opacity=".85"/><circle cx="20" cy="20" r="1.8" fill="#ffe082"/></pattern>`;
+    d += `<pattern id="stripesR" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="5" fill="#e53935"/></pattern>`;
+    d += `<pattern id="rainbow" width="200" height="60" patternUnits="userSpaceOnUse">${['#ff4d6d', '#ff9f1c', '#ffe14d', '#5ed35e', '#4aa3ff', '#9b6dd6'].map((c, i) => `<rect y="${i * 10}" width="200" height="10" fill="${c}"/>`).join('')}</pattern>`;
+    return `<defs>${d}</defs>`;
+  }
+
+  /* Arm positions for each pose, for the arm on the viewer's right (mirrored for the left). [elbow dx,dy, hand dx,dy] */
+  const ARM = { down: [9, 38, 14, 74], wave: [30, -18, 36, -60], up: [26, -28, 42, -62], point: [38, 4, 74, 2], chin: [10, 30, -24, -12], lap: [4, 40, -12, 70] };
+  const POSE = {
+    front: ['down', 'down'], wave: ['down', 'wave'], cheer: ['up', 'up'], point: ['down', 'point'], think: ['down', 'chin'], jump: ['up', 'up'], sit: ['lap', 'lap'],
+  };
+
+  function svg(p, pose = 'front', crop = '') {
+    p = valid(p);
+    const o = OUT[p.outfit];
+    const [bw, bh] = BODIES[p.body];
+    const skin = SKIN[p.skin], skinD = shade(skin, 0.86);
+    const hcRaw = HAIR_COLOURS[p.hairColour], hc = hcRaw === 'rainbow' ? 'url(#hg)' : hcRaw, hcD = hcRaw === 'rainbow' ? '#9b6dd6' : shade(hcRaw, 0.72);
+    const jump = pose === 'jump';
+    /* Map body coordinates (designed for an average body) to this body type. Absolute M/L/C/Q/Z paths only. */
+    const tx = (x) => +(100 + (x - 100) * bw).toFixed(1), ty = (y) => +(150 + (y - 150) * bh).toFixed(1);
+    const tp = (s) => s.replace(/(-?\d+(?:\.\d+)?)[ ,](-?\d+(?:\.\d+)?)/g, (_, x, y) => `${tx(+x)} ${ty(+y)}`);
+    const fill = o.grad ? 'url(#og)' : o.top;
+    const patt = (d, id) => (id ? `<path d="${d}" fill="url(#${id})"/>` : '');
+    const parts = [];
+    const hooded = !!o.hood;
+    const hw = { round: 55, oval: 49, heart: 54, square: 54 }[p.face];
+
+    // cape, tails and backpacks behind everything
+    if (o.cape) parts.push(`<path d="${tp('M68 166 L132 166 C148 240 160 310 166 372 C124 384 76 384 34 372 C40 310 52 240 68 166 Z')}" fill="${o.cape}" ${L}/><path d="${tp('M68 166 L132 166 L150 300')}" fill="none" stroke="${shade(o.cape, 0.8)}" stroke-width="3"/>`);
+    if (o.pack) parts.push(`<rect x="${tx(58)}" y="${ty(168)}" width="${tx(142) - tx(58)}" height="${ty(262) - ty(168)}" rx="14" fill="${o.pack}" ${L}/>`);
+    if (o.tail === 'dino') parts.push(`<path d="${tp('M126 300 C150 310 176 320 194 344 C170 346 146 338 124 330 Z')}" fill="${o.top}" ${L}/><path d="${tp('M140 306 L146 296 L152 312 M158 314 L166 304 L170 322 M176 324 L184 316 L186 334')}" fill="#ff9f1c" ${LT}/>`);
+    if (o.bottom === 'chicken') parts.push(`<path d="${tp('M150 250 C170 236 182 238 186 246 C178 252 176 262 172 272 C184 268 190 274 188 282 C176 284 166 288 154 292 Z')}" fill="#fff3b0" ${L}/>`);
+
+    // hair (back layer) or hood back
+    const back = hooded ? '' : hairBack(p.hair, hc, hcD);
+    const hood = o.hood ? hoodBack(o.hood) : '';
+    parts.push(`<g transform="translate(100 0) scale(${(hw / 55).toFixed(3)} 1) translate(-100 0)">${back}${hood}</g>`);
+
+    // legs + shoes
+    const hipY = 286, footY = jump ? 384 : pose === 'sit' ? 352 : 394;
+    const feet = jump ? [[70, footY], [130, footY]] : [[86, footY], [114, footY]];
+    const legC = o.legs || skin;
+    [[88, feet[0]], [112, feet[1]]].forEach(([hx, [fx, fy]]) => {
+      const a = `${tx(hx)} ${ty(hipY)}`, b = `${tx(fx)} ${ty(fy)}`;
+      parts.push(`<path d="M${a} L${b}" stroke="${K}" stroke-width="${o.bottom === 'chicken' ? 12 : 21}" stroke-linecap="round"/><path d="M${a} L${b}" stroke="${legC}" stroke-width="${o.bottom === 'chicken' ? 7 : 16}" stroke-linecap="round"/>`);
+      if (o.socks) parts.push(`<path d="M${tx(fx)} ${ty(fy - 22)} L${b}" stroke="${o.socks}" stroke-width="15" stroke-linecap="round"/>`);
+      parts.push(shoe(o, tx(fx), ty(fy) + 4, fx < 100 ? -1 : 1));
+    });
+
+    // bottoms
+    const sk = 'M62 226 L138 226 C148 256 156 284 160 302 C130 314 70 314 40 302 C44 284 52 256 62 226 Z';
+    const gown = 'M64 226 L136 226 C150 280 166 340 172 390 C130 402 70 402 28 390 C34 340 50 280 64 226 Z';
+    const trousers = 'M64 222 L136 222 L138 388 L106 388 L100 268 L94 388 L62 388 Z';
+    const capri = 'M64 222 L136 222 L138 344 L106 344 L100 268 L94 344 L62 344 Z';
+    const shorts = 'M64 222 L136 222 L140 290 L104 290 L100 262 L96 290 L60 290 Z';
+    const onesie = 'M64 166 C80 158 120 158 136 166 C150 220 150 300 140 388 L106 388 L100 300 L94 388 L60 388 C50 300 50 220 64 166 Z';
+    const chickenB = 'M100 158 C152 158 168 230 162 280 C156 322 130 334 100 334 C70 334 44 322 38 280 C32 230 48 158 100 158 Z';
+    const bananaB = 'M72 162 C90 156 112 156 128 162 C150 220 152 290 132 336 C112 346 88 346 68 336 C48 290 50 220 72 162 Z';
+    const cut = (d) => (pose === 'sit' ? d.replace(/388/g, '350') : d);
+    if (o.bottom === 'skirt') { parts.push(`<path d="${tp(sk)}" fill="${fill}" ${L}/>${patt(tp(sk), o.pat)}`); }
+    else if (o.bottom === 'gown') { const g = cut(gown).replace(/390/g, pose === 'sit' ? '352' : '390').replace(/402/g, pose === 'sit' ? '362' : '402'); parts.push(`<path d="${tp(g)}" fill="${fill}" ${L}/>${patt(tp(g), o.pat)}<path d="${tp('M52 300 C80 312 120 312 148 300')}" fill="none" stroke="#fff" stroke-width="3" opacity=".7"/>`); }
+    else if (o.bottom === 'trousers') parts.push(`<path d="${tp(cut(trousers))}" fill="${o.bottomFill}" ${L}/>`);
+    else if (o.bottom === 'capri') parts.push(`<path d="${tp(capri)}" fill="${o.bottomFill}" ${L}/>`);
+    else if (o.bottom === 'shorts') parts.push(`<path d="${tp(shorts)}" fill="${o.bottomFill}" ${L}/><path d="${tp('M66 240 L70 286 M134 240 L130 286')}" stroke="${o.sportStripe || '#fff'}" stroke-width="3"/>`);
+    else if (o.bottom === 'onesie') parts.push(`<path d="${tp(cut(onesie))}" fill="${o.bottomFill}" ${L}/>`);
+    else if (o.bottom === 'chicken') parts.push(`<path d="${tp(chickenB)}" fill="${o.bottomFill}" ${L}/><path d="${tp('M70 300 C84 310 116 310 130 300')}" fill="none" stroke="#f0b400" stroke-width="3"/>`);
+    else if (o.bottom === 'banana') parts.push(`<path d="${tp(bananaB)}" fill="${o.bottomFill}" ${L}/><path d="${tp('M100 168 C96 230 98 290 100 340 M80 170 C70 230 72 290 80 336')}" fill="none" stroke="#e6b800" stroke-width="2.5"/>`);
+
+    // top
+    const top = 'M68 166 C80 158 120 158 132 166 L138 232 L62 232 Z';
+    if (!['onesie', 'chicken', 'banana'].includes(o.bottom)) {
+      parts.push(`<path d="${tp(top)}" fill="${fill}" ${L}/>${patt(tp(top), o.pat)}`);
+      if (o.bottom === 'skirt' || o.bottom === 'gown') parts.push(`<path d="${tp('M63 228 C88 234 112 234 137 228')}" fill="none" ${LT}/>`);
+      if (o.collar) parts.push(`<path d="${tp('M84 162 C90 174 110 174 116 162')}" fill="${o.collar}" ${LT}/>`);
+      if (o.frill) parts.push(`<path d="${tp('M68 168 C62 176 64 186 70 190 M132 168 C138 176 136 186 130 190')}" fill="none" stroke="${shade(o.top, 0.85)}" stroke-width="5" stroke-linecap="round"/>`);
+      if (o.bib) parts.push(`<path d="${tp('M76 192 L124 192 L126 232 L74 232 Z')}" fill="${o.bottomFill}" ${L}/><path d="${tp('M76 194 L70 164 M124 194 L130 164')}" stroke="${o.bottomFill}" stroke-width="7" stroke-linecap="round"/><circle cx="${tx(78)}" cy="${ty(198)}" r="3" fill="#ffd54f"/><circle cx="${tx(122)}" cy="${ty(198)}" r="3" fill="#ffd54f"/><rect x="${tx(90)}" y="${ty(204)}" width="${20 * bw}" height="${14 * bh}" rx="3" fill="${shade(o.bottomFill, 0.85)}"/>`);
+      if (o.star) parts.push(star(tx(100), ty(196), 12, o.star));
+      if (o.sportStripe) parts.push(`<path d="${tp('M100 162 L100 232')}" stroke="${o.sportStripe}" stroke-width="4"/><circle cx="${tx(100)}" cy="${ty(196)}" r="10" fill="#fff" ${LT}/>${star(tx(100), ty(196), 7, '#ff7043')}`);
+      if (o.vest) parts.push(`<path d="${tp('M68 166 L84 164 L88 232 L62 232 Z')}" fill="${o.vest}" ${L}/><path d="${tp('M132 166 L116 164 L112 232 L138 232 Z')}" fill="${o.vest}" ${L}/><rect x="${tx(62)}" y="${ty(222)}" width="${tx(138) - tx(62)}" height="9" fill="#8d5a34" ${LT}/><rect x="${tx(95)}" y="${ty(221)}" width="11" height="11" fill="#ffd54f" ${LT}/>`);
+      if (o.emblem) parts.push(`<circle cx="${tx(100)}" cy="${ty(192)}" r="15" fill="#fff" ${LT}/>${star(tx(100), ty(192), 11, '#e53935')}`);
+      if (o.belt) parts.push(`<rect x="${tx(62)}" y="${ty(222)}" width="${tx(138) - tx(62)}" height="8" fill="${o.belt}" ${LT}/>`);
+    } else {
+      if (o.belly) parts.push(`<ellipse cx="${tx(100)}" cy="${ty(248)}" rx="${26 * bw}" ry="${46 * bh}" fill="${o.belly}" ${LT}/>`);
+      if (o.panel) parts.push(`<rect x="${tx(84)}" y="${ty(186)}" width="${32 * bw}" height="${24 * bh}" rx="4" fill="#cfd8dc" ${LT}/><circle cx="${tx(92)}" cy="${ty(198)}" r="3.5" fill="#e53935"/><circle cx="${tx(102)}" cy="${ty(198)}" r="3.5" fill="#43a047"/><circle cx="${tx(111)}" cy="${ty(198)}" r="3.5" fill="#1e88e5"/><path d="${tp('M62 238 L138 238')}" stroke="#90a4ae" stroke-width="6"/>`);
+      if (o.tail === 'pom') parts.push(`<circle cx="${tx(146)}" cy="${ty(276)}" r="10" fill="#fff" ${LT}/>`);
+    }
+
+    // arms
+    const [aL, aR] = POSE[pose] || POSE.front;
+    [[-1, aL], [1, aR]].forEach(([side, k]) => {
+      const a = ARM[k]; const sx = tx(100 + side * 30), sy = ty(172);
+      const ex = sx + side * a[0], ey = sy + a[1], hx = sx + side * a[2], hy = sy + a[3];
+      const d = `M${sx} ${sy} Q${ex} ${ey} ${hx} ${hy}`;
+      const sl = o.sleeve === 'wing' ? o.top : o.sleeve === 'long' ? (o.grad ? o.grad[0] : o.top) : skin;
+      parts.push(`<path d="${d}" fill="none" stroke="${K}" stroke-width="${o.sleeve === 'wing' ? 24 : 19}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${sl}" stroke-width="${o.sleeve === 'wing' ? 18 : 14}" stroke-linecap="round"/>`);
+      if (o.sleeve === 'long' && o.pat === 'stripesR') parts.push(`<path d="${d}" fill="none" stroke="#e53935" stroke-width="14" stroke-dasharray="5 7"/>`);
+      if (o.sleeve === 'short' || o.sleeve === 'puff') { const mx = (sx + ex) / 2, my = (sy + ey) / 2; parts.push(`<path d="M${sx} ${sy} L${mx.toFixed(1)} ${my.toFixed(1)}" stroke="${K}" stroke-width="${o.sleeve === 'puff' ? 26 : 21}" stroke-linecap="round"/><path d="M${sx} ${sy} L${mx.toFixed(1)} ${my.toFixed(1)}" stroke="${o.grad ? o.grad[0] : o.top}" stroke-width="${o.sleeve === 'puff' ? 21 : 16}" stroke-linecap="round"/>`); }
+      if (o.sleeve === 'wing') parts.push(`<path d="M${hx - 8} ${hy + 4} L${hx - 4} ${hy + 14} L${hx} ${hy + 6} L${hx + 4} ${hy + 14} L${hx + 8} ${hy + 4}" fill="${o.top}" ${LT}/>`);
+      parts.push(`<circle cx="${hx}" cy="${hy}" r="8.5" fill="${o.panel ? '#cfd8dc' : skin}" ${L}/>`);
+      if (k === 'point') parts.push(`<path d="M${hx + 6} ${hy - 1} L${hx + 16} ${hy - 2}" stroke="${K}" stroke-width="8" stroke-linecap="round"/><path d="M${hx + 6} ${hy - 1} L${hx + 16} ${hy - 2}" stroke="${skin}" stroke-width="4" stroke-linecap="round"/>`);
+    });
+
+    // neck, ears, head
+    parts.push(`<rect x="92" y="140" width="16" height="26" rx="6" fill="${skinD}" ${LT}/>`);
+    if (!hooded) parts.push(`<circle cx="${100 - hw + 2}" cy="108" r="11" fill="${skin}" ${L}/><circle cx="${100 + hw - 2}" cy="108" r="11" fill="${skin}" ${L}/>`);
+    const head = { round: `<ellipse cx="100" cy="98" rx="55" ry="56"`, oval: `<ellipse cx="100" cy="100" rx="49" ry="61"`, heart: `<path d="M100 160 C80 157 50 132 47 98 C44 60 70 42 100 42 C130 42 156 60 153 98 C150 132 120 157 100 160 Z"`, square: `<rect x="46" y="44" width="108" height="112" rx="32"` }[p.face];
+    parts.push(`${head} fill="${skin}" ${L}/>`);
+    parts.push(face(p, pose, skin));
+
+    // hair front or hood front, then accessories
+    if (!hooded) parts.push(`<g transform="translate(100 0) scale(${(hw / 55).toFixed(3)} 1) translate(-100 0)">${hairFront(p.hair, hc, hcD)}</g>`);
+    else parts.push(hoodFront(o.hood, hw));
+    if (o.bandana) parts.push(`<path d="M44 100 C38 52 70 34 100 34 C130 34 162 52 156 100 C140 82 120 76 100 76 C80 76 60 82 44 100 Z" fill="${o.bandana}" ${L}/><g fill="#fff"><circle cx="80" cy="56" r="3"/><circle cx="104" cy="48" r="3"/><circle cx="126" cy="60" r="3"/><circle cx="94" cy="66" r="2.5"/></g><path d="M150 78 C166 80 172 94 170 104 C162 98 156 94 150 92 Z M152 82 C166 92 168 108 160 116 C156 106 152 98 148 90 Z" fill="${o.bandana}" ${L}/>`);
+    if (!hooded && !o.bandana) parts.push(accessory(p.acc, hw, hc));
+    else if (p.acc === 'glasses') parts.push(accessory('glasses', hw, hc));
+    if (o.patch) parts.push(`<path d="M46 86 L154 70" stroke="${K}" stroke-width="3"/><ellipse cx="121" cy="106" rx="13" ry="11" fill="${K}"/>`);
+    if (o.helmet) parts.push(`<circle cx="100" cy="98" r="76" fill="#dff3ff" fill-opacity=".16" ${L}/><path d="M50 70 C60 46 84 32 108 32" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" opacity=".8"/><rect x="62" y="164" width="76" height="14" rx="7" fill="#cfd8dc" ${L}/>`);
+
+    const lift = jump ? -14 : 0;
+    const vb = crop === 'head' ? '18 -30 164 220' : crop === 'top' ? '0 -30 200 330' : '0 -30 200 480';
+    const [, , vw, vh] = vb.split(' ').map(Number);
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="${vw * 2}" height="${vh * 2}">${defs(p, o)}<g filter="url(#st)" transform="translate(0 ${lift})">${parts.join('')}</g></svg>`;
+  }
+
+  const star = (x, y, r, c) => `<path d="${Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; return `${i ? 'L' : 'M'}${(x + Math.cos(a) * rr).toFixed(1)} ${(y + Math.sin(a) * rr).toFixed(1)}`; }).join(' ')} Z" fill="${c}" ${LT}/>`;
+
+  function shoe(o, x, y, side) {
+    if (o.shoe === 'feet') return `<path d="M${x} ${y - 6} L${x - 12} ${y + 6} M${x} ${y - 6} L${x} ${y + 8} M${x} ${y - 6} L${x + 12} ${y + 6}" stroke="${K}" stroke-width="8" stroke-linecap="round"/><path d="M${x} ${y - 6} L${x - 12} ${y + 6} M${x} ${y - 6} L${x} ${y + 8} M${x} ${y - 6} L${x + 12} ${y + 6}" stroke="${o.shoes}" stroke-width="4.5" stroke-linecap="round"/>`;
+    if (o.shoe === 'paw') return `<ellipse cx="${x + side * 2}" cy="${y}" rx="15" ry="10" fill="${o.shoes}" ${L}/>`;
+    if (o.shoe === 'boot') return `<path d="M${x - 10} ${y - 18} L${x + 10} ${y - 18} L${x + 10} ${y} C${x + 18} ${y} ${x + side * 6 + 14} ${y + 10} ${x + side * 4 + 10} ${y + 10} L${x - 12} ${y + 10} C${x - 14} ${y + 4} ${x - 12} ${y} ${x - 10} ${y} Z" fill="${o.shoes}" ${L}/>`;
+    if (o.shoe === 'sneaker') return `<path d="M${x - 12} ${y - 6} C${x - 6} ${y - 10} ${x + 8} ${y - 10} ${x + 12} ${y - 2} C${x + 16} ${y + 2} ${x + 16} ${y + 8} ${x + 10} ${y + 9} L${x - 12} ${y + 9} C${x - 16} ${y + 8} ${x - 16} ${y - 2} ${x - 12} ${y - 6} Z" fill="${o.shoes}" ${L}/><path d="M${x - 14} ${y + 5} L${x + 14} ${y + 5}" stroke="#fff" stroke-width="3"/>`;
+    return `<path d="M${x - 12} ${y - 4} C${x - 8} ${y - 10} ${x + 8} ${y - 10} ${x + 12} ${y - 2} C${x + 15} ${y + 4} ${x + 12} ${y + 9} ${x + 6} ${y + 9} L${x - 8} ${y + 9} C${x - 15} ${y + 9} ${x - 15} ${y} ${x - 12} ${y - 4} Z" fill="${o.shoes}" ${L}/><path d="M${x - 9} ${y - 5} L${x + 9} ${y - 5}" stroke="${K}" stroke-width="2.5"/>`;
+  }
+
+  function face(p, pose, skin) {
+    const e = EYES[p.eyes], y = p.face === 'oval' ? 106 : 104, dx = p.face === 'oval' ? 19 : 21;
+    let s = '';
+    [100 - dx, 100 + dx].forEach((x) => {
+      s += `<ellipse cx="${x}" cy="${y}" rx="8.5" ry="9.5" fill="#fff" ${LT}/><circle cx="${x}" cy="${y + 1}" r="6.6" fill="${e}"/><circle cx="${x}" cy="${y + 1}" r="3.4" fill="#2a1a14"/><circle cx="${x + 2.4}" cy="${y - 2}" r="2.2" fill="#fff"/>`;
+      if (p.gender === 'girl') s += `<path d="M${x - 9} ${y - 5} L${x - 12} ${y - 9} M${x - 6} ${y - 8} L${x - 8} ${y - 12}" stroke="${K}" stroke-width="2" stroke-linecap="round" transform="${x > 100 ? `translate(${2 * x} 0) scale(-1 1)` : ''}"/>`;
+      s += `<path d="M${x - 8} ${y - 15} Q${x} ${y - 20} ${x + 8} ${y - 15}" fill="none" stroke="${K}" stroke-width="2.6" stroke-linecap="round" opacity=".75"/>`;
+    });
+    s += `<ellipse cx="${100 - dx - 7}" cy="${y + 18}" rx="8" ry="5" fill="#ff8a80" opacity=".55"/><ellipse cx="${100 + dx + 7}" cy="${y + 18}" rx="8" ry="5" fill="#ff8a80" opacity=".55"/>`;
+    s += `<path d="M97 ${y + 13} Q100 ${y + 17} 104 ${y + 14}" fill="none" stroke="${shade(skin, 0.7)}" stroke-width="2.4" stroke-linecap="round"/>`;
+    const my = y + 26;
+    s += pose === 'think' ? `<path d="M92 ${my} Q100 ${my + 3} 108 ${my - 1}" fill="none" ${LT}/>` : `<path d="M87 ${my - 2} Q100 ${my + 12} 113 ${my - 2} Q100 ${my + 3} 87 ${my - 2} Z" fill="#e2626f" ${LT}/>`;
+    return s;
+  }
+
+  const capSwoop = 'M44 108 C38 56 70 36 100 36 C130 36 162 56 156 108 C152 92 148 82 140 74 C124 84 102 86 82 78 C70 78 58 86 52 98 C49 101 46 105 44 108 Z';
+  function hairBack(style, c, d) {
+    const f = `fill="${c}" ${L}`;
+    switch (style) {
+      case 'long': return `<path d="M44 96 C28 150 32 214 50 244 C72 254 128 254 150 244 C168 214 172 150 156 96 C150 66 130 42 100 42 C70 42 50 66 44 96 Z" ${f}/><path d="M58 170 C56 200 60 226 66 240 M142 170 C144 200 140 226 134 240" fill="none" stroke="${d}" stroke-width="3" stroke-linecap="round"/>`;
+      case 'bob': return `<path d="M40 104 C34 132 38 152 50 164 C80 170 120 170 150 164 C162 152 166 132 160 104 C154 64 130 42 100 42 C70 42 46 64 40 104 Z" ${f}/>`;
+      case 'curly': return `${Array.from({ length: 16 }, (_, i) => { const a = i / 16 * Math.PI * 2; return `<circle cx="${(100 + Math.cos(a) * 62).toFixed(1)}" cy="${(94 + Math.sin(a) * 58).toFixed(1)}" r="21" ${f}/>`; }).join('')}<ellipse cx="100" cy="94" rx="64" ry="60" fill="${c}"/>`;
+      case 'ponytail': return `<path d="M136 64 C182 58 190 130 170 196 C164 166 156 128 132 96 Z" ${f}/><circle cx="138" cy="66" r="7" fill="#ff6fa3" ${LT}/>`;
+      case 'bun': return `<circle cx="100" cy="34" r="22" ${f}/><path d="M86 30 C94 24 106 24 114 30" fill="none" stroke="${d}" stroke-width="3"/>`;
+      case 'pigtails': return `<path d="M50 112 C28 114 18 148 24 180 C34 172 44 160 50 146 C52 160 52 168 50 178 C60 164 62 140 58 120 Z" ${f}/><path d="M150 112 C172 114 182 148 176 180 C166 172 156 160 150 146 C148 160 148 168 150 178 C140 164 138 140 142 120 Z" ${f}/>`;
+      case 'braids': return [-1, 1].map((s) => { const x = 100 + s * 54; return Array.from({ length: 6 }, (_, i) => `<ellipse cx="${x - s * (i % 2 ? 2 : -2)}" cy="${128 + i * 20}" rx="11" ry="13" ${f}/>`).join('') + `<path d="M${x - 5} ${246} L${x} ${262} L${x + 5} ${246}" fill="${c}" ${LT}/><rect x="${x - 7}" y="${234}" width="14" height="8" rx="3" fill="#2f8c86" ${LT}/>`; }).join('');
+      default: return '';
+    }
+  }
+  function hairFront(style, c, d) {
+    const f = `fill="${c}" ${L}`;
+    const strands = `<path d="M78 46 C90 40 110 40 122 46" fill="none" stroke="${d}" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>`;
+    switch (style) {
+      case 'spiky': return `<path d="M46 102 L42 70 L56 74 L56 50 L70 58 L76 36 L88 50 L100 30 L112 50 L124 36 L130 58 L144 50 L144 74 L158 70 L154 102 C150 86 140 76 128 72 C110 78 90 78 72 72 C60 76 50 86 46 102 Z" ${f}/>`;
+      case 'short': return `<path d="M45 106 C40 60 66 38 100 38 C134 38 160 60 155 106 C152 92 148 80 142 72 C126 80 96 82 72 70 C60 78 50 90 45 106 Z" ${f}/>${strands}`;
+      case 'bob': return `<path d="M44 112 C38 56 70 36 100 36 C130 36 162 56 156 112 L150 112 C148 92 144 82 140 76 L60 76 C56 82 52 92 50 112 Z" ${f}/>${strands}`;
+      case 'curly': return `${[56, 72, 88, 104, 120, 136, 146].map((x, i) => `<circle cx="${x}" cy="${i % 2 ? 54 : 62}" r="13" ${f}/>`).join('')}`;
+      case 'pigtails': return `<path d="${capSwoop}" ${f}/>${strands}<circle cx="52" cy="118" r="6" fill="#ff6fa3" ${LT}/><circle cx="148" cy="118" r="6" fill="#ff6fa3" ${LT}/>`;
+      case 'braids': return `<path d="M44 112 C38 56 70 36 100 36 C130 36 162 56 156 112 C150 90 140 74 120 66 C110 74 104 80 100 84 C96 80 90 74 80 66 C60 74 50 90 44 112 Z" ${f}/>`;
+      default: return `<path d="${capSwoop}" ${f}/>${strands}`;
+    }
+  }
+  function hoodBack(h) {
+    const f = `fill="${h.fill}" ${L}`;
+    let s = '';
+    if (h.kind === 'bunny') s += `<path d="M70 50 C56 10 60 -24 74 -26 C88 -24 90 14 86 46 Z" ${f}/><path d="M73 40 C66 12 68 -12 75 -16 C82 -12 82 14 80 40 Z" fill="#ffd1e3"/><path d="M130 50 C144 10 140 -24 126 -26 C112 -24 110 14 114 46 Z" ${f}/><path d="M127 40 C134 12 132 -12 125 -16 C118 -12 118 14 120 40 Z" fill="#ffd1e3"/>`;
+    if (h.kind === 'bear') s += `<circle cx="50" cy="44" r="20" ${f}/><circle cx="50" cy="44" r="10" fill="#e9c79a"/><circle cx="150" cy="44" r="20" ${f}/><circle cx="150" cy="44" r="10" fill="#e9c79a"/>`;
+    if (h.kind === 'dino') s += `${[[60, 34, 44, 10], [82, 22, 74, -4], [106, 20, 102, -8], [128, 28, 132, 0], [146, 44, 158, 22]].map(([x, y, px, py]) => `<path d="M${x - 10} ${y + 8} L${px} ${py} L${x + 12} ${y + 4} Z" fill="#ff9f1c" ${L}/>`).join('')}`;
+    if (h.kind === 'chicken') s += `<circle cx="88" cy="22" r="11" fill="#e53935" ${L}/><circle cx="104" cy="14" r="12" fill="#e53935" ${L}/><circle cx="119" cy="24" r="10" fill="#e53935" ${L}/>`;
+    if (h.kind === 'banana') return `<path d="M108 -14 C140 20 172 60 166 112 C162 152 140 172 100 172 C60 172 38 152 34 112 C30 64 66 26 96 -6 Z" ${f}/><path d="M96 -6 L92 -22 L104 -24 L108 -14 Z" fill="#6d4c2f" ${L}/><path d="M60 40 C50 70 46 110 52 150" fill="none" stroke="#e6b800" stroke-width="3"/>`;
+    return s + `<path d="M100 26 C146 26 170 64 168 106 C166 146 140 170 100 170 C60 170 34 146 32 106 C30 64 54 26 100 26 Z" ${f}/>`;
+  }
+  function hoodFront(h, hw) {
+    const f = `fill="${h.fill}" ${L}`;
+    let s = `<path d="M${100 - hw - 2} 110 C${100 - hw - 6} 56 70 36 100 36 C130 36 ${100 + hw + 6} 56 ${100 + hw + 2} 110 C${100 + hw - 6} 84 128 70 100 70 C72 70 ${100 - hw + 6} 84 ${100 - hw - 2} 110 Z" ${f}/>`;
+    if (h.kind === 'chicken') s += `<path d="M90 50 L110 50 L100 66 Z" fill="#ff9f1c" ${L}/><circle cx="84" cy="48" r="5" fill="${K}"/><circle cx="116" cy="48" r="5" fill="${K}"/><circle cx="85.5" cy="46.5" r="1.8" fill="#fff"/><circle cx="117.5" cy="46.5" r="1.8" fill="#fff"/>`;
+    if (h.kind === 'dino') s += `<circle cx="80" cy="48" r="7" fill="#fff" ${LT}/><circle cx="120" cy="48" r="7" fill="#fff" ${LT}/><circle cx="81" cy="49" r="3.5" fill="${K}"/><circle cx="121" cy="49" r="3.5" fill="${K}"/><path d="M84 60 L90 66 L96 60 L102 66 L108 60 L114 66 L118 60" fill="#fff" ${LT}/>`;
+    if (h.kind === 'bear' || h.kind === 'bunny') s += `<ellipse cx="100" cy="50" rx="9" ry="6" fill="${h.kind === 'bear' ? '#4a2f27' : '#ff9ec4'}"/>`;
+    return s;
+  }
+  function accessory(a, hw, hc) {
+    switch (a) {
+      case 'headband': return `<path d="M${100 - hw + 2} 92 C${100 - hw + 6} 50 70 38 100 38 C130 38 ${100 + hw - 6} 50 ${100 + hw - 2} 92" fill="none" stroke="${K}" stroke-width="13" stroke-linecap="round"/><path d="M${100 - hw + 2} 92 C${100 - hw + 6} 50 70 38 100 38 C130 38 ${100 + hw - 6} 50 ${100 + hw - 2} 92" fill="none" stroke="#e0393b" stroke-width="8" stroke-linecap="round"/>`;
+      case 'bow': return `<g transform="translate(136 46) rotate(18)"><path d="M0 0 C-12 -16 -30 -12 -28 2 C-26 14 -12 12 0 0 Z M0 0 C12 -16 30 -12 28 2 C26 14 12 12 0 0 Z" fill="#ff5c9a" ${L}/><circle r="6" fill="#ff8fbd" ${L}/></g>`;
+      case 'flower': return `<g transform="translate(138 58)">${[0, 72, 144, 216, 288].map((d) => `<circle cx="${(Math.cos(d * Math.PI / 180) * 8).toFixed(1)}" cy="${(Math.sin(d * Math.PI / 180) * 8).toFixed(1)}" r="7" fill="#fff" ${LT}/>`).join('')}<circle r="5.5" fill="#ffc107" ${LT}/></g>`;
+      case 'crown': return `<path d="M68 46 L64 14 L82 30 L100 6 L118 30 L136 14 L132 46 Z" fill="#ffca28" ${L}/><circle cx="100" cy="34" r="5" fill="#e53935" ${LT}/><circle cx="80" cy="38" r="3.5" fill="#42a5f5"/><circle cx="120" cy="38" r="3.5" fill="#9b59b6"/>`;
+      case 'hat': return `<ellipse cx="100" cy="52" rx="${hw + 26}" ry="14" fill="#f3d27a" ${L}/><path d="M64 52 C64 18 136 18 136 52 Z" fill="#f3d27a" ${L}/><path d="M65 44 C80 48 120 48 135 44 L136 52 C120 56 80 56 64 52 Z" fill="#ff6fa3" ${LT}/>`;
+      case 'cap': return `<path d="M48 70 C48 22 152 22 152 70 Z" fill="#1e88e5" ${L}/><path d="M48 70 C40 72 24 74 18 80 C30 84 46 80 60 74 Z" fill="#1565c0" ${L}/><circle cx="100" cy="30" r="4" fill="#fff"/>`;
+      case 'glasses': return `<g fill="#ffffff55" stroke="#c2185b" stroke-width="4"><circle cx="79" cy="105" r="13"/><circle cx="121" cy="105" r="13"/></g><path d="M92 103 Q100 98 108 103" fill="none" stroke="#c2185b" stroke-width="4"/>`;
+      default: return '';
+    }
+  }
+
+  const cache = new Map();
+  function src(p, pose = 'front', crop = '') {
+    const k = JSON.stringify(valid(p)) + pose + crop;
+    let u = cache.get(k);
+    if (!u) { u = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg(p, pose, crop)); if (cache.size > 400) cache.clear(); cache.set(k, u); }
+    return u;
+  }
+  return { HAIR, HAIR_COLOURS, EYES, FACES, SKIN, BODIES, OUTFITS, FUNNY, ACCS, PRESETS, DEFAULT, GIRL_NAMES, BOY_NAMES, valid, random, withGender, svg, src };
+})();
+
+
 /* ===== src/30-audio.js ===== */
 /* Speech (pre-recorded clips, speechSynthesis fallback), Web Audio sound effects,
    and a looping original background music bed. Prefer a pleasant girl's voice. */
@@ -630,7 +961,7 @@ const Audio = (() => {
   loadClips();
   function clipsFor(list) {
     if (!clipManifest) return null;
-    const urls = list.map((p) => clipManifest[clipKey(p.L, p.t)]);
+    const urls = list.map((p) => (p.tts ? { tts: p } : clipManifest[clipKey(p.L, p.t)]));
     return urls.every(Boolean) ? urls : null;
   }
 
@@ -789,7 +1120,7 @@ const Audio = (() => {
     const ui = lang();
     return (Array.isArray(parts) ? parts : [parts])
       .flat()
-      .map((p) => (typeof p === 'string' ? { t: p, L: ui } : { t: p.en, L: 'en' }))
+      .map((p) => (typeof p === 'string' ? { t: p, L: ui } : p.name ? { t: p.name, L: ui, tts: true } : { t: p.en, L: 'en' }))
       .filter((p) => p.t);
   }
   function playClips(urls, opts = {}) {
@@ -807,6 +1138,14 @@ const Audio = (() => {
           clipPlayer.onended = null; clipPlayer.onerror = null;
           setTimeout(next, 80);
         };
+        if (url && url.tts) { // a custom name: no clip, use the device voice for just this part
+          if (!synth) return fin();
+          const u = new SpeechSynthesisUtterance(url.tts.t); const v = voices[url.tts.L];
+          if (v) u.voice = v; u.lang = v ? v.lang : LOCALE[url.tts.L]; u.pitch = 1.45; u.rate = 1;
+          u.onend = fin; u.onerror = fin; setTimeout(fin, 1200 + url.tts.t.length * 160);
+          try { synth.cancel(); synth.speak(u); } catch (e) { fin(); }
+          return;
+        }
         clipPlayer.onended = fin;
         clipPlayer.onerror = fin;
         try {
@@ -904,11 +1243,19 @@ const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) {
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const POSES = ['front', 'wave', 'cheer', 'point', 'sit', 'think', 'jump'];
-const player = () => (NAMES[Store.settings.player] ? Store.settings.player : 'lea');
-const playerName = (who = player()) => NAMES[who][lang()];
-const playerSay = () => (lang() === 'en' ? NAMES[player()].sayEn : playerName());
-const poseSrc = (pose, who = player()) => `assets/character/${who}-${pose}.png`;
-const leaImg = (pose, cls = '', who = player()) => `<img class="lea ${cls}" src="${poseSrc(pose, who)}" alt="${NAMES[who].en}" draggable="false" data-pose="${pose}" data-who="${who}">`;
+/* Characters: built-in Lea and Ines (illustrated; drawn by AV only once their look is changed) plus custom ones. */
+const BUILTIN = ['lea', 'ines'];
+const isBuiltin = (who) => BUILTIN.includes(who);
+const allChars = () => [...BUILTIN, ...Store.chars.map((c) => c.id)];
+const lookOf = (who) => (isBuiltin(who) ? Store.look(who) : Store.char(who));
+const player = () => (allChars().includes(Store.settings.player) ? Store.settings.player : 'lea');
+const playerName = (who = player()) => (isBuiltin(who) ? NAMES[who][lang()] : (Store.char(who) || {}).name || '?');
+const playerSay = () => (lang() === 'en' && isBuiltin(player()) ? NAMES[player()].sayEn : playerName());
+/* Speech lines that contain the player's name: recorded clips for Lea / Ines, device voice for a custom name. */
+const hiSpeech = () => (isBuiltin(player()) ? T('hi', playerSay()) : [T('hello'), NAME(playerName() + '!')]);
+const wellDoneSpeech = () => (isBuiltin(player()) ? T('wellDone', playerSay()) : [T('praise')[1], NAME(playerName() + '!')]);
+const poseSrc = (pose, who = player()) => { const l = lookOf(who); return l ? AV.src(l, pose) : `assets/character/${isBuiltin(who) ? who : 'lea'}-${pose}.png`; };
+const leaImg = (pose, cls = '', who = player()) => `<img class="lea ${cls}" src="${poseSrc(pose, who)}" alt="${playerName(who)}" draggable="false" data-pose="${pose}" data-who="${who}">`;
 
 function h(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
 
@@ -1018,7 +1365,7 @@ function roundEnd({ stars, onAgain, onHome, title = T('wellDone', playerName()) 
   document.body.appendChild(o);
   celebrate({ text: '', pose: 'jump', big: true });
   setTimeout(() => Audio.sfx('fanfare'), 300);
-  Audio.say([T('wellDone', playerSay()), T('stars5')]);
+  Audio.say([wellDoneSpeech(), T('stars5')]);
   onTap(o.querySelector('.again'), () => { o.remove(); onAgain(); }, { sound: 'pop' });
   onTap(o.querySelector('.home'), () => { o.remove(); onHome(); }, { sound: 'whoosh' });
 }
@@ -1154,6 +1501,7 @@ function placeOnWorld(screen) {
   });
 }
 
+const MAX_CHARS = 6;
 const lolly = (cls, inner, label, swirl) => `<button class="lolly ${cls}" aria-label="${label}">
   <span class="lolly-disc" style="--sw:${swirl}">${inner}</span><span class="lolly-stick"></span><span class="lolly-label">${label}</span></button>`;
 
@@ -1162,16 +1510,22 @@ SCREENS.gate = () => {
   const el = h(`<section class="world gate">
     <header class="world-top"><h1 class="logo small"><span class="l1">Lea</span> <span class="l2">Learns</span></h1><div class="world-top-right"></div></header>
     <div class="gate-ask bubble">${T('whosPlaying')}</div>
-    <div class="pickers">${Object.keys(NAMES).map((who, i) => `
-      <button class="picker ${who === cur ? 'last' : ''}" data-who="${who}" style="--i:${i}" aria-label="${playerName(who)}">
+    <div class="pickers ${allChars().length + (Store.chars.length < MAX_CHARS ? 1 : 0) >= 3 ? 'many' : ''}" style="--n:${allChars().length + (Store.chars.length < MAX_CHARS ? 1 : 0)}">${allChars().map((who, i) => `
+      <button class="picker ${who === cur ? 'last' : ''} ${isBuiltin(who) ? '' : 'custom'}" data-who="${who}" style="--i:${i}" aria-label="${playerName(who)}">
         <span class="picker-lea">${leaImg('wave', '', who)}</span>
         <span class="picker-name">${playerName(who)}</span>
-      </button>`).join('')}</div>
+      </button>`).join('')}${Store.chars.length < MAX_CHARS ? `
+      <button class="picker picker-new" style="--i:${allChars().length}" aria-label="${T('creator')}">
+        <span class="picker-lea"><span class="new-disc"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 10 V38 M10 24 H38" stroke="currentColor" stroke-width="7" stroke-linecap="round"/></svg></span></span>
+        <span class="picker-name">${T('newChar')}</span>
+      </button>` : ''}</div>
   </section>`);
   el.prepend(worldLayer());
   el.appendChild(parentCorner());
   $('.world-top-right', el).appendChild(langBar());
-  $$('.picker', el).forEach((b) => onTap(b, () => {
+  const nb = $('.picker-new', el);
+  if (nb) onTap(nb, () => { Audio.unlock(); nb.classList.add('chosen'); setTimeout(() => go('creator', { id: 'new' }), 350); }, { sound: 'open' });
+  $$('.picker[data-who]', el).forEach((b) => onTap(b, () => {
     Audio.unlock();
     Audio.sfx('open');
     Store.set('player', b.dataset.who);
@@ -1185,7 +1539,7 @@ SCREENS.gate = () => {
 
 SCREENS.home = ({ hello } = {}) => {
   const d = Store.data;
-  const other = Object.keys(NAMES).find((w) => w !== player());
+  const list = allChars(), other = list[(list.indexOf(player()) + 1) % list.length];
   const el = h(`<section class="world home">
     <header class="world-top">
       <h1 class="logo small"><span class="l1">Lea</span> <span class="l2">Learns</span></h1>
@@ -1194,7 +1548,8 @@ SCREENS.home = ({ hello } = {}) => {
     <button class="door" data-world="door" aria-label="${T('words')}"><span class="door-glow"></span></button>
     <div class="front">
       <div class="hero" data-who="${player()}">${leaImg('front', 'hero-lea')}<div class="bubble hero-bubble" hidden></div>
-        <button class="swap" aria-label="${playerName(other)}">${leaImg('front', 'swap-img', other)}</button></div>
+        <button class="swap" aria-label="${playerName(other)}">${leaImg('front', 'swap-img', other)}</button>
+        <button class="edit-look" aria-label="${T('editLook')}"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M30 8 C34 4 44 14 40 18 L20 38 L8 40 L10 28 Z" fill="#ffd54f" stroke="#4a2f27" stroke-width="3.5" stroke-linejoin="round"/><path d="M10 28 L20 38" stroke="#4a2f27" stroke-width="3.5"/><path d="M28 10 L38 20" stroke="#4a2f27" stroke-width="3.5"/><path d="M30 8 C34 4 44 14 40 18 L36 22 L26 12 Z" fill="#ff6fa3" stroke="#4a2f27" stroke-width="3.5" stroke-linejoin="round"/></svg></button></div>
       <nav class="lollies">
         ${lolly('l-words', art('apple'), T('words'), '#ff6b81')}
         ${lolly('l-abc', '<b style="--c:#e53935">A</b><b style="--c:#1e88e5">B</b><b style="--c:#43a047">C</b>', T('abc'), '#b388ff')}
@@ -1217,18 +1572,190 @@ SCREENS.home = ({ hello } = {}) => {
   onTap($('.l-abc', el), () => open('abc', 'ABC', $('.l-abc', el)), { sound: 'open' });
   onTap($('.l-num', el), () => open('numbers', T('numbers'), $('.l-num', el)), { sound: 'open' });
   onTap($('.door', el), () => open('words', T('words'), $('.door', el)), { sound: 'open' });
-  onTap($('.hero-lea', el), () => { const t = pick([T('hi', playerName()), T('hello'), T('letsPlay'), T('loveApples')]); talk(t, t.replace(playerName(), playerSay())); }, { sound: 'pop' });
+  onTap($('.hero-lea', el), () => { const t = pick([T('hi', playerName()), T('hello'), T('letsPlay'), T('loveApples')]); talk(t, t === T('hi', playerName()) ? hiSpeech() : t); }, { sound: 'pop' });
   onTap($('.swap', el), () => { Store.set('player', other); go('home', { hello: true }); }, { sound: 'open' });
+  onTap($('.edit-look', el), () => go('creator', { id: player() }), { sound: 'open' });
   const dog = $('.home-dog', el);
   onTap(dog, () => Dog.show(), { sound: null });
   el._layout = () => placeOnWorld(el);
   el._enter = () => {
     placeOnWorld(el);
-    hello ? talk(T('hi', playerName()), [T('hi', playerSay()), T('whatPlay')]) : talk(T('whatPlay'));
+    hello ? talk(T('hi', playerName()), [hiSpeech(), T('whatPlay')]) : talk(T('whatPlay'));
     // Sometimes the dog is already sitting on the cloud; sometimes he bursts in a bit later.
     if (Math.random() < 0.45) later(() => { dog.hidden = false; dog.classList.add('in'); }, 2200);
     if (Math.random() < 0.3) later(() => Dog.show(), 9000);
   };
+  return el;
+};
+
+
+/* ===== src/52-creator.js ===== */
+/* Lea Learns — "Create your character": a live dress-up editor. Icons and swatches, no reading needed.
+   New characters are saved next to Lea and Ines; Lea and Ines themselves can change outfit, hair and extras
+   and go back to their original illustrated look with one tap. */
+const CRL = {
+  en: {
+    cat: { gender: 'Girl / boy', hair: 'Hair', hairColour: 'Colour', eyes: 'Eyes', face: 'Face', skin: 'Skin', body: 'Body', outfit: 'Clothes', acc: 'Extras' },
+    gender: { girl: 'Girl', boy: 'Boy' },
+    hair: { pigtails: 'Pigtails', braids: 'Braids', long: 'Long', bob: 'Bob', ponytail: 'Ponytail', bun: 'Bun', curly: 'Curly', short: 'Short', spiky: 'Spiky' },
+    hairColour: { brunette: 'Brown', black: 'Black', blonde: 'Blonde', ginger: 'Ginger', red: 'Red', silver: 'Silver', pink: 'Pink', blue: 'Blue', purple: 'Purple', neon: 'Neon green', rainbow: 'Rainbow' },
+    eyes: { brown: 'Brown', dark: 'Dark brown', blue: 'Blue', green: 'Green', hazel: 'Hazel', grey: 'Grey', violet: 'Violet' },
+    face: { round: 'Round', oval: 'Oval', heart: 'Heart', square: 'Square' },
+    skin: { porcelain: 'Very light', light: 'Light', peach: 'Peach', tan: 'Tan', brown: 'Brown', deep: 'Dark brown' },
+    body: { slim: 'Slim', average: 'Medium', round: 'Round', tall: 'Tall', small: 'Small' },
+    outfit: { flowerPink: 'Pink flower dress', flowerTeal: 'Teal daisy dress', appleDress: 'Apple dress', princess: 'Princess dress', polka: 'Polka-dot dress', rainbow: 'Rainbow dress', tee: 'T-shirt and trousers', dungarees: 'Dungarees', sporty: 'Sporty', pirate: 'Pirate', superhero: 'Superhero', astronaut: 'Astronaut', chicken: 'Chicken', dino: 'Dinosaur', bunny: 'Bunny', bear: 'Teddy bear', banana: 'Banana' },
+    acc: { none: 'Nothing', headband: 'Headband', bow: 'Bow', flower: 'Flower', crown: 'Crown', hat: 'Sun hat', cap: 'Cap', glasses: 'Glasses' },
+    name: 'Name', save: 'Save', dice: 'Surprise me', reset: 'Original look', del: 'Delete', delSure: 'Tap again to delete', back: 'Back',
+  },
+  pl: {
+    cat: { gender: 'Dziewczynka / chłopiec', hair: 'Fryzura', hairColour: 'Kolor', eyes: 'Oczy', face: 'Buzia', skin: 'Skóra', body: 'Sylwetka', outfit: 'Ubranie', acc: 'Dodatki' },
+    gender: { girl: 'Dziewczynka', boy: 'Chłopiec' },
+    hair: { pigtails: 'Kucyki', braids: 'Warkocze', long: 'Długie', bob: 'Bob', ponytail: 'Kitka', bun: 'Kok', curly: 'Loki', short: 'Krótkie', spiky: 'Na jeża' },
+    hairColour: { brunette: 'Brązowe', black: 'Czarne', blonde: 'Blond', ginger: 'Rude', red: 'Czerwone', silver: 'Srebrne', pink: 'Różowe', blue: 'Niebieskie', purple: 'Fioletowe', neon: 'Neonowo zielone', rainbow: 'Tęczowe' },
+    eyes: { brown: 'Brązowe', dark: 'Ciemnobrązowe', blue: 'Niebieskie', green: 'Zielone', hazel: 'Piwne', grey: 'Szare', violet: 'Fiołkowe' },
+    face: { round: 'Okrągła', oval: 'Owalna', heart: 'Serduszko', square: 'Kwadratowa' },
+    skin: { porcelain: 'Bardzo jasna', light: 'Jasna', peach: 'Brzoskwiniowa', tan: 'Opalona', brown: 'Brązowa', deep: 'Ciemnobrązowa' },
+    body: { slim: 'Szczupła', average: 'Średnia', round: 'Pulchna', tall: 'Wysoka', small: 'Niska' },
+    outfit: { flowerPink: 'Różowa sukienka w kwiatki', flowerTeal: 'Morska sukienka w stokrotki', appleDress: 'Sukienka w jabłuszka', princess: 'Suknia księżniczki', polka: 'Sukienka w kropki', rainbow: 'Tęczowa sukienka', tee: 'Koszulka i spodnie', dungarees: 'Ogrodniczki', sporty: 'Strój sportowy', pirate: 'Pirat', superhero: 'Superbohater', astronaut: 'Astronauta', chicken: 'Kurczak', dino: 'Dinozaur', bunny: 'Króliczek', bear: 'Miś', banana: 'Banan' },
+    acc: { none: 'Nic', headband: 'Opaska', bow: 'Kokarda', flower: 'Kwiatek', crown: 'Korona', hat: 'Kapelusz', cap: 'Czapka z daszkiem', glasses: 'Okulary' },
+    name: 'Imię', save: 'Zapisz', dice: 'Losuj', reset: 'Oryginalny wygląd', del: 'Usuń', delSure: 'Dotknij ponownie, aby usunąć', back: 'Wróć',
+  },
+  ru: {
+    cat: { gender: 'Девочка / мальчик', hair: 'Причёска', hairColour: 'Цвет', eyes: 'Глаза', face: 'Лицо', skin: 'Кожа', body: 'Фигура', outfit: 'Одежда', acc: 'Украшения' },
+    gender: { girl: 'Девочка', boy: 'Мальчик' },
+    hair: { pigtails: 'Хвостики', braids: 'Косички', long: 'Длинные', bob: 'Каре', ponytail: 'Хвост', bun: 'Пучок', curly: 'Кудри', short: 'Короткие', spiky: 'Ёжик' },
+    hairColour: { brunette: 'Каштановые', black: 'Чёрные', blonde: 'Светлые', ginger: 'Рыжие', red: 'Красные', silver: 'Серебряные', pink: 'Розовые', blue: 'Синие', purple: 'Фиолетовые', neon: 'Неоново-зелёные', rainbow: 'Радужные' },
+    eyes: { brown: 'Карие', dark: 'Тёмно-карие', blue: 'Голубые', green: 'Зелёные', hazel: 'Ореховые', grey: 'Серые', violet: 'Фиалковые' },
+    face: { round: 'Круглое', oval: 'Овальное', heart: 'Сердечком', square: 'Квадратное' },
+    skin: { porcelain: 'Очень светлая', light: 'Светлая', peach: 'Персиковая', tan: 'Загорелая', brown: 'Смуглая', deep: 'Тёмная' },
+    body: { slim: 'Стройная', average: 'Средняя', round: 'Пухленькая', tall: 'Высокая', small: 'Маленькая' },
+    outfit: { flowerPink: 'Розовое платье в цветочек', flowerTeal: 'Бирюзовое платье с ромашками', appleDress: 'Платье с яблочками', princess: 'Платье принцессы', polka: 'Платье в горошек', rainbow: 'Радужное платье', tee: 'Футболка и брюки', dungarees: 'Комбинезон', sporty: 'Спортивная форма', pirate: 'Пират', superhero: 'Супергерой', astronaut: 'Космонавт', chicken: 'Цыплёнок', dino: 'Динозавр', bunny: 'Зайчик', bear: 'Мишка', banana: 'Банан' },
+    acc: { none: 'Ничего', headband: 'Ободок', bow: 'Бантик', flower: 'Цветочек', crown: 'Корона', hat: 'Шляпка', cap: 'Кепка', glasses: 'Очки' },
+    name: 'Имя', save: 'Сохранить', dice: 'Случайно', reset: 'Как было', del: 'Удалить', delSure: 'Нажмите ещё раз, чтобы удалить', back: 'Назад',
+  },
+};
+const CR = () => CRL[lang()] || CRL.en;
+const CR_OPTIONS = { gender: ['girl', 'boy'], hair: AV.HAIR, hairColour: Object.keys(AV.HAIR_COLOURS), eyes: Object.keys(AV.EYES), face: AV.FACES, skin: Object.keys(AV.SKIN), body: Object.keys(AV.BODIES), outfit: AV.OUTFITS, acc: AV.ACCS };
+const HOODED = ['chicken', 'dino', 'bunny', 'bear', 'banana'];
+
+function crTabIcon(k, p) {
+  const s = (inner) => `<svg viewBox="0 0 48 48" aria-hidden="true">${inner}</svg>`;
+  const K = 'stroke="#4a2f27" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
+  const hc = AV.HAIR_COLOURS[p.hairColour];
+  switch (k) {
+    case 'gender': return s(`<circle cx="15" cy="13" r="7" fill="#ffd9b8" ${K}/><path d="M15 21 L6 40 L24 40 Z" fill="#ff7eb6" ${K}/><circle cx="34" cy="13" r="7" fill="#ffd9b8" ${K}/><path d="M27 22 L41 22 L41 32 L38 32 L38 42 L30 42 L30 32 L27 32 Z" fill="#4aa3ff" ${K}/>`);
+    case 'hair': return s(`<path d="M8 30 C4 8 44 8 40 30 C40 40 36 44 34 44 C36 30 30 20 24 18 C18 20 12 30 14 44 C12 44 8 40 8 30 Z" fill="${hc === 'rainbow' ? '#ff7eb6' : hc}" ${K}/>`);
+    case 'hairColour': return s(`<circle cx="15" cy="16" r="9" fill="#ff7eb6" ${K}/><circle cx="33" cy="16" r="9" fill="#ffd54f" ${K}/><circle cx="15" cy="33" r="9" fill="#4aa3ff" ${K}/><circle cx="33" cy="33" r="9" fill="#7dff3a" ${K}/>`);
+    case 'eyes': return s(`<path d="M4 24 C12 10 36 10 44 24 C36 38 12 38 4 24 Z" fill="#fff" ${K}/><circle cx="24" cy="24" r="8" fill="${AV.EYES[p.eyes]}"/><circle cx="24" cy="24" r="4" fill="#2a1a14"/><circle cx="27" cy="21" r="2" fill="#fff"/>`);
+    case 'face': return s(`<ellipse cx="24" cy="24" rx="17" ry="20" fill="${AV.SKIN[p.skin]}" ${K}/><circle cx="18" cy="22" r="2.5" fill="#4a2f27"/><circle cx="30" cy="22" r="2.5" fill="#4a2f27"/><path d="M18 31 Q24 36 30 31" fill="none" ${K}/>`);
+    case 'skin': return s(`${['#ffe6d5', '#f1c09a', '#a8714a', '#76482b'].map((c, i) => `<circle cx="${14 + (i % 2) * 20}" cy="${14 + Math.floor(i / 2) * 20}" r="9" fill="${c}" ${K}/>`).join('')}`);
+    case 'body': return s(`<circle cx="14" cy="10" r="5" fill="#ffd9b8" ${K}/><rect x="9" y="16" width="10" height="28" rx="5" fill="#9b6dd6" ${K}/><circle cx="34" cy="20" r="5" fill="#ffd9b8" ${K}/><rect x="25" y="26" width="18" height="18" rx="8" fill="#26a69a" ${K}/>`);
+    case 'outfit': return s(`<path d="M17 6 L31 6 L34 16 L30 18 L40 42 L8 42 L18 18 L14 16 Z" fill="#e53935" ${K}/><circle cx="20" cy="30" r="2.5" fill="#fff"/><circle cx="28" cy="34" r="2.5" fill="#fff"/><circle cx="25" cy="24" r="2.5" fill="#fff"/>`);
+    case 'acc': return s(`<path d="M8 36 L6 12 L16 22 L24 8 L32 22 L42 12 L40 36 Z" fill="#ffca28" ${K}/><circle cx="24" cy="28" r="3.5" fill="#e53935"/>`);
+    default: return '';
+  }
+}
+
+SCREENS.creator = ({ id = 'new', from } = {}) => {
+  const isNew = id === 'new' || (!isBuiltin(id) && !Store.char(id));
+  const builtin = isBuiltin(id);
+  const back = from || (isNew ? 'gate' : 'home');
+  let p = builtin ? AV.valid(Store.look(id) || AV.PRESETS[id]) : isNew ? AV.valid(Object.assign({}, AV.DEFAULT, { name: pick(AV.GIRL_NAMES) })) : AV.valid(Store.char(id));
+  let original = builtin && !Store.look(id); // Lea / Ines still in their illustrated look
+  const cats = builtin ? ['outfit', 'hair', 'hairColour', 'acc'] : ['gender', 'hair', 'hairColour', 'eyes', 'face', 'skin', 'body', 'outfit', 'acc'];
+  let tab = cats[0];
+  const t = CR();
+  const el = h(`<section class="creator" lang="${lang()}">
+    <header class="bar cr-bar">
+      <button class="round-btn home-btn cr-back" aria-label="${t.back}">${ICON.back}</button>
+      <div class="bar-title" style="--c:var(--purple)"><span>${builtin ? T('editLook') : T('creator')}</span></div>
+      <span class="cr-bar-gap"></span>
+    </header>
+    <div class="cr-main">
+      <div class="cr-show">
+        <div class="cr-preview"><img class="lea cr-img" alt="" draggable="false"></div>
+        <div class="cr-side">
+          ${builtin ? `<div class="cr-fixed-name">${playerName(id)}</div>` : `<label class="cr-name-wrap"><span class="sr">${t.name}</span><input class="cr-name" type="text" maxlength="14" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="${t.name}" value=""></label>`}
+          <div class="cr-actions">
+            <button class="cr-btn cr-dice" aria-label="${t.dice}"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="9" fill="#fff" stroke="#4a2f27" stroke-width="3.5"/><g fill="#e53935"><circle cx="16" cy="16" r="4"/><circle cx="32" cy="32" r="4"/><circle cx="24" cy="24" r="4"/><circle cx="32" cy="16" r="4"/><circle cx="16" cy="32" r="4"/></g></svg></button>
+            ${builtin ? `<button class="cr-btn cr-reset" aria-label="${t.reset}">${ICON.again}</button>` : isNew ? '' : `<button class="cr-btn cr-del" aria-label="${t.del}"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 14 H36 L33 42 H15 Z" fill="#fff" stroke="#c62828" stroke-width="3.5" stroke-linejoin="round"/><path d="M8 14 H40 M19 14 V8 H29 V14 M20 21 V35 M28 21 V35" fill="none" stroke="#c62828" stroke-width="3.5" stroke-linecap="round"/></svg></button>`}
+            <button class="cr-btn cr-save" aria-label="${t.save}"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L39 13" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="cr-panel">
+        <nav class="cr-tabs n${cats.length}">${cats.map((k) => `<button class="cr-tab" data-cat="${k}" aria-label="${t.cat[k]}"><span class="cr-tab-ic"></span><span class="cr-tab-l">${t.cat[k]}</span></button>`).join('')}</nav>
+        <div class="cr-opts scroll"></div>
+      </div>
+    </div>
+  </section>`);
+  const img = $('.cr-img', el), opts = $('.cr-opts', el), nameIn = $('.cr-name', el);
+  if (nameIn) nameIn.value = p.name;
+  const hop = () => { img.classList.remove('hop'); void img.offsetWidth; img.classList.add('hop'); };
+  const paint = () => {
+    img.src = original ? `assets/character/${id}-front.png` : AV.src(p, 'front');
+    $$('.cr-tab', el).forEach((b) => { b.classList.toggle('on', b.dataset.cat === tab); $('.cr-tab-ic', b).innerHTML = crTabIcon(b.dataset.cat, p); });
+  };
+  const thumb = (k, v) => {
+    const q = Object.assign({}, k === 'gender' ? AV.withGender(p, v) : p, k === 'gender' ? {} : { [k]: v });
+    if ((k === 'hair' || k === 'face' || k === 'acc') && HOODED.includes(q.outfit)) q.outfit = q.gender === 'boy' ? 'tee' : 'appleDress';
+    if (k === 'hairColour') return `<span class="sw ${v === 'rainbow' ? 'sw-rainbow' : ''}" style="--c:${AV.HAIR_COLOURS[v]}"></span>`;
+    if (k === 'skin') return `<span class="sw" style="--c:${AV.SKIN[v]}"></span>`;
+    if (k === 'eyes') return `<span class="sw sw-eye" style="--c:${AV.EYES[v]}"></span>`;
+    const crop = ['face', 'acc', 'hair'].includes(k) ? 'head' : k === 'gender' ? 'top' : '';
+    return `<img src="${AV.src(q, 'front', crop)}" alt="" draggable="false">`;
+  };
+  const renderOpts = () => {
+    const cur = tab === 'gender' ? p.gender : p[tab];
+    opts.className = `cr-opts scroll k-${tab}`;
+    opts.innerHTML = CR_OPTIONS[tab].map((v) => `<button class="cr-opt ${v === cur && !original ? 'on' : ''} ${AV.FUNNY.includes(v) ? 'funny' : ''}" data-v="${v}" aria-label="${t[tab][v]}" aria-pressed="${v === cur}">${thumb(tab, v)}</button>`).join('');
+    opts.scrollTop = 0;
+    $$('.cr-opt', opts).forEach((b) => onTap(b, () => {
+      const v = b.dataset.v;
+      p = tab === 'gender' ? AV.withGender(p, v) : Object.assign({}, p, { [tab]: v });
+      if (tab === 'gender' && nameIn) nameIn.value = p.name;
+      original = false;
+      paint(); hop(); renderOpts();
+      if (v === 'chicken') Audio.say(T('cluck')); else if (v === 'dino') Audio.say(T('roar'));
+    }, { sound: 'pop' }));
+  };
+  $$('.cr-tab', el).forEach((b) => onTap(b, () => { tab = b.dataset.cat; paint(); renderOpts(); Audio.say(T('crAsk')[tab]); }, { sound: 'tap' }));
+  if (nameIn) {
+    nameIn.addEventListener('input', () => { p.name = nameIn.value; });
+    nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); nameIn.blur(); } });
+    nameIn.addEventListener('focus', () => Audio.say(T('crAsk').name));
+  }
+  onTap($('.cr-back', el), () => go(back), { sound: 'whoosh' });
+  onTap($('.cr-dice', el), () => {
+    if (builtin) p = AV.valid(Object.assign({}, p, { outfit: pick(AV.OUTFITS), hair: pick(AV.HAIR), hairColour: pick(Object.keys(AV.HAIR_COLOURS)), acc: pick(AV.ACCS) }));
+    else { p = AV.random(); if (nameIn) nameIn.value = p.name; }
+    original = false; paint(); hop(); renderOpts(); Audio.say(T('surprise'));
+  }, { sound: 'sparkle' });
+  const reset = $('.cr-reset', el);
+  if (reset) onTap(reset, () => { Store.setLook(id, null); p = AV.valid(AV.PRESETS[id]); original = true; paint(); hop(); renderOpts(); Audio.say(T('likeBefore')); }, { sound: 'whoosh' });
+  const del = $('.cr-del', el);
+  if (del) { let armed = false; onTap(del, () => {
+    if (!armed) { armed = true; del.classList.add('armed'); del.setAttribute('aria-label', t.delSure); setTimeout(() => { armed = false; del.classList.remove('armed'); }, 3500); return; }
+    Store.deleteChar(id); go('gate');
+  }, { sound: 'again' }); }
+  onTap($('.cr-save', el), () => {
+    if (App.busy) return; App.busy = true;
+    let who = id;
+    if (builtin) { if (!original) Store.setLook(id, Object.assign({}, AV.valid(p), { name: '' })); }
+    else {
+      const name = (nameIn ? nameIn.value : p.name).replace(/[<>&"]/g, '').trim().slice(0, 14) || (p.gender === 'boy' ? AV.BOY_NAMES[0] : AV.GIRL_NAMES[0]);
+      who = isNew ? 'c-' + Date.now().toString(36) + Math.floor(Math.random() * 1e3).toString(36) : id;
+      Store.saveChar(Object.assign(AV.valid(p), { name, id: who }));
+    }
+    Store.set('player', who);
+    const superWord = T('praise').find((x) => /^(Super|Супер)/.test(x)) || T('praise')[0];
+    celebrate({ text: superWord, pose: 'jump' });
+    Audio.say([superWord, T('letsPlay')]);
+    later(() => go('home', { hello: true }), 1600);
+  }, { sound: 'pop' });
+  el._enter = () => Audio.say(builtin ? [T('editLook'), T('crAsk')[tab]] : T('creator'));
+  paint(); renderOpts();
+  el.appendChild(parentCorner());
   return el;
 };
 

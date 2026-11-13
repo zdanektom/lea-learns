@@ -22,6 +22,8 @@ cd dist && python3 -m http.server 8080   # then open http://localhost:8080
 ## How to play
 
 * **Start:** tap Lea or Ines (“Who’s playing?”). This first tap also switches on sound and speech on iPad. The last choice is remembered. You can swap on the home screen with the small round face next to the character.
+* **Create your character:** tap the big purple **+** (“New”) on the start screen. Everything is chosen with pictures and colour swatches: girl or boy, 9 hairstyles, 11 hair colours (including pink, blue, purple, neon green and rainbow), eye colour, face shape, skin tone, body shape (slim, medium, round, tall, small), 17 outfits (dresses, trousers, dungarees, sporty, plus funny costumes: chicken, dinosaur, bunny, teddy bear, banana, pirate, astronaut and superhero) and extras (headband, bow, flower, crown, sun hat, cap, glasses). The dice makes a surprise character, the green tick saves it. Up to 6 own characters can live next to Lea and Ines; open one again with the pencil on the home screen, where a bin button (tap twice) removes it. Girl or boy only changes the starting suggestions; every outfit and hairstyle is always available.
+* **Lea and Ines dress-up:** the pencil next to Lea or Ines on the home screen changes their clothes, hairstyle, hair colour and extras. The round arrow brings back their original look at any time.
 * **Home:** the candy house in the clouds. The three big lollipops are the modes, and the heart door also opens Words.
 * **Words:** Food (apple first), Animals, Colours, Home, Nature and Body, 8–10 pictures each. Montessori three-period lesson:
   1. **Look**: “This is … apple”.
@@ -35,7 +37,7 @@ cd dist && python3 -m http.server 8080   # then open http://localhost:8080
 
 **Hold the faint circle in the top-right corner of the start or home screen for 3 seconds.** It has:
 
-* the interface language (**Polski / English / Русский**; Polish is the default) — this can also be changed with the **Polski / English / Русский** buttons on the start and home screens,
+* the interface language (**Polski / English / Русский**; English is the default) — this can also be changed with the **Polski / English / Русский** buttons on the start and home screens,
 * the counting range (1–20 / 1–30),
 * sound effects, background music and speech on/off,
 * the voices this device has,
@@ -60,13 +62,14 @@ The interface language changes the menus and the guide’s hints. **The vocabula
 
 ```
 index.html  styles.css  manifest.webmanifest  sw.template.js  build.mjs
-src/                 game code (concatenated in order into app.js)
+src/                 game code (concatenated in order into app.js); 22-avatar.js draws the made-up characters, 52-creator.js is the editor
 assets/character/    Lea, Ines and Bacon (transparent PNGs cut from the approved illustrations)
 assets/world/        candy-house backgrounds (landscape + portrait)
 assets/fonts/        Fredoka (Latin) + Nunito (Cyrillic) subsets, SIL OFL 1.1 (see FONTS.txt)
 icons/               app icons from the illustrated Lea
 tools/               cutout.py (background removal + pose crops), make_icons.py, check-no-photo.py
 tests/e2e.mjs        end-to-end walkthrough (puppeteer-core + Chrome); screenshots in shots/
+tests/creator.mjs    focused test of “Create your character”
 ```
 
 Every picture to learn is an original SVG drawn in `src/20-art.js`. Only illustrated artwork is used: no photographs are part of the app.
