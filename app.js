@@ -1,7 +1,7 @@
-/* Lea Learns 1.4.3 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.5.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.4.3';
+const APP_VERSION = '1.5.0';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -1134,24 +1134,46 @@ const Audio = (() => {
     return ctx;
   }
 
-  /* Pre-recorded cartoon-girl clips (assets/voice). Fallback: device speechSynthesis. */
+  /* Pre-recorded clips (assets/voice). Two banks: a girl's voice (default, precached) and a
+     boy's voice (assets/voice/boy, cached on first use) — the current guide decides which.
+     Fallback: device speechSynthesis. */
   let clipManifest = null, clipLoading = null;
+  let boyManifest = null, boyLoading = null, boyWarm = false, lastClips = [];
   const clipPlayer = (typeof window !== 'undefined' && window.Audio) ? new window.Audio() : null;
   if (clipPlayer) { clipPlayer.setAttribute('playsinline', ''); clipPlayer.preload = 'auto'; }
   function clipKey(L, text) { return L + ':' + String(text).trim(); }
+  const getJson = (u) => fetch(u).then((r) => r.ok ? r.json() : {}).catch(() => ({}));
   function loadClips() {
     if (clipManifest) return Promise.resolve(clipManifest);
     if (clipLoading) return clipLoading;
-    clipLoading = fetch('assets/voice/manifest.json').then((r) => r.ok ? r.json() : {}).then((m) => { clipManifest = m || {}; return clipManifest; }).catch(() => { clipManifest = {}; return clipManifest; });
+    clipLoading = getJson('assets/voice/manifest.json').then((m) => { clipManifest = m || {}; return clipManifest; });
     return clipLoading;
   }
+  function loadBoy() {
+    if (boyManifest) return Promise.resolve(boyManifest);
+    if (boyLoading) return boyLoading;
+    boyLoading = getJson('assets/voice/boy/manifest.json').then((m) => { boyManifest = m || {}; return boyManifest; });
+    return boyLoading;
+  }
   loadClips();
+  /* 'girl' | 'boy' — from the current guide character (40-ui.js). */
+  const voiceKind = () => { try { return guideVoice(); } catch (e) { return 'girl'; } };
+  /* Once a boy is the guide, quietly fetch his whole bank so it also works offline (the service worker keeps it). */
+  function warmBoy() {
+    if (boyWarm) return; boyWarm = true;
+    loadBoy().then((m) => {
+      const urls = [...new Set(Object.values(m))]; let i = 0;
+      const one = () => (i < urls.length ? fetch(urls[i++]).catch(() => {}).then(() => new Promise((r) => setTimeout(r, 30))).then(one) : null);
+      const start = () => { one(); one(); };
+      if (window.requestIdleCallback) requestIdleCallback(start, { timeout: 4000 }); else setTimeout(start, 1500);
+    });
+  }
   function clipsFor(list) {
     if (!clipManifest) return null;
-    const urls = list.map((p) => (p.tts ? { tts: p } : clipManifest[clipKey(p.L, p.t)]));
+    const boy = voiceKind() === 'boy' ? (boyManifest || {}) : null;
+    const urls = list.map((p) => (p.tts ? { tts: p } : (boy && boy[clipKey(p.L, p.t)]) || clipManifest[clipKey(p.L, p.t)]));
     return urls.every(Boolean) ? urls : null;
   }
-
 
   /* Cheerful original music-box loop. Decoded into an AudioBuffer and looped
      sample-accurately, so the repeat has no MP3 encoder gap. */
@@ -1319,6 +1341,7 @@ const Audio = (() => {
       const next = () => {
         if (token !== queueToken || i >= urls.length) return resolve();
         const url = urls[i++];
+        lastClips.push(url && url.tts ? 'tts:' + url.tts.t : url); if (lastClips.length > 40) lastClips.shift();
         let done = false;
         const fin = () => {
           if (done) return; done = true;
@@ -1328,7 +1351,7 @@ const Audio = (() => {
         if (url && url.tts) { // a custom name: no clip, use the device voice for just this part
           if (!synth) return fin();
           const u = new SpeechSynthesisUtterance(url.tts.t); const v = voices[url.tts.L];
-          if (v) u.voice = v; u.lang = v ? v.lang : LOCALE[url.tts.L]; u.pitch = 1.45; u.rate = 1;
+          if (v) u.voice = v; u.lang = v ? v.lang : LOCALE[url.tts.L]; u.pitch = voiceKind() === 'boy' ? 1.15 : 1.45; u.rate = 1;
           u.onend = fin; u.onerror = fin; setTimeout(fin, 1200 + url.tts.t.length * 160);
           try { synth.cancel(); synth.speak(u); } catch (e) { fin(); }
           return;
@@ -1359,7 +1382,7 @@ const Audio = (() => {
     const go = () => {
       const urls = clipsFor(list);
       if (urls && urls.length) return playClips(urls, opts);
-      // Fallback: device speechSynthesis, still preferring a girl-like pitch.
+      // Fallback: device speechSynthesis, pitched for a girl or a boy guide.
       if (!synth) return Promise.resolve();
       const spoken = list.filter((p) => !listLoaded || voices[p.L] || p.L === 'en');
       const token = ++queueToken;
@@ -1375,7 +1398,7 @@ const Audio = (() => {
           if (v) u.voice = v;
           u.lang = v ? v.lang : LOCALE[p.L];
           u.rate = opts.rate || (p.L === 'en' ? 0.95 : 1.0);
-          u.pitch = opts.pitch || 1.45;
+          u.pitch = opts.pitch || (voiceKind() === 'boy' ? 1.15 : 1.45);
           let done = false;
           const fin = () => { if (done) return; done = true; setTimeout(next, 120); };
           u.onend = fin; u.onerror = fin;
@@ -1385,7 +1408,9 @@ const Audio = (() => {
         setTimeout(next, 40);
       });
     };
-    const p = clipManifest ? go() : loadClips().then(go);
+    const boy = voiceKind() === 'boy';
+    if (boy) warmBoy();
+    const p = clipManifest && (!boy || boyManifest) ? go() : Promise.all([loadClips(), boy ? loadBoy() : null]).then(go);
     return Promise.resolve(p).then((r) => { duckMusic(false); return r; }, () => { duckMusic(false); });
   }
   function hush() {
@@ -1423,7 +1448,7 @@ const Audio = (() => {
   };
   function sfx(name, arg) { if (!Store.settings.sound) return; if (!ensureCtx()) return; try { SFX[name] && SFX[name](arg); } catch (e) {} }
 
-  return { get speaking() { return live > 0; }, unlock, say, hush, sfx, setMusic, voiceFor: (L) => (voices[L] ? `${voices[L].name} (${voices[L].lang})` : ''), get hasSpeech() { return !!synth; }, get listLoaded() { return listLoaded; } };
+  return { get speaking() { return live > 0; }, get voiceKind() { return voiceKind(); }, get lastClips() { return lastClips.slice(); }, resetClips() { lastClips = []; }, warmBoy, unlock, say, hush, sfx, setMusic, voiceFor: (L) => (voices[L] ? `${voices[L].name} (${voices[L].lang})` : ''), get hasSpeech() { return !!synth; }, get listLoaded() { return listLoaded; } };
 })();
 
 
@@ -1441,6 +1466,9 @@ const isBuiltin = (who) => BUILTIN.includes(who);
 const allChars = () => [...BUILTIN, ...Store.chars.map((c) => c.id)];
 const lookOf = (who) => (isBuiltin(who) ? Store.look(who) : Store.char(who));
 const player = () => (allChars().includes(Store.settings.player) ? Store.settings.player : 'lea');
+/* Boys (Leo, or a custom child built on a boy base) speak with the boy's voice bank. */
+const isBoyChar = (who = player()) => who === 'leo' || (!isBuiltin(who) && !!Store.char(who) && PAINT.BOYS.includes(PAINT.validChar(Store.char(who)).base));
+const guideVoice = () => (isBoyChar() ? 'boy' : 'girl');
 const playerName = (who = player()) => (isBuiltin(who) ? NAMES[who][lang()] : (Store.char(who) || {}).name || '?');
 const playerSay = () => (lang() === 'en' && isBuiltin(player()) ? NAMES[player()].sayEn : playerName());
 /* Speech lines that contain the player's name: recorded clips for Lea / Ines / Leo, device voice for a custom name. */
@@ -3157,7 +3185,7 @@ function openParent() {
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
   }
-  window.LeaLearns = { go, Store, Dog, Tour, poseSrc, version: APP_VERSION }; // small handle for tests and debugging
+  window.LeaLearns = { go, Store, Dog, Tour, Audio, poseSrc, version: APP_VERSION }; // small handle for tests and debugging
 })();
 
 })();
