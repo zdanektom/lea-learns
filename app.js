@@ -1,7 +1,7 @@
-/* Lea Learns 1.5.2 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.5.3 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.5.3';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -1558,6 +1558,7 @@ const SCREENS = {};
 function later(fn, ms) { const t = setTimeout(fn, ms); App.timers.push(t); return t; }
 /* Run fn (the next round) only when the praise + answer speech (and Bacon's line, if he popped in) has finished — never cut a name off —
    and not before minMs (the celebration). Capped, so a stuck clip can never stall the game. (v1.5.2) */
+// maxMs is only a guard against stuck audio: callers with long sentences pass a bigger one (v1.5.3: sums)
 function afterSpeech(sp, minMs, fn, maxMs = minMs + 1000) {
   const t0 = Date.now(), gen = App.gen; let fired = false;
   const run = () => { if (fired || gen !== App.gen) return; if (Audio.speaking && Date.now() - t0 < maxMs) { later(run, 200); return; } fired = true; fn(); };
@@ -2897,7 +2898,7 @@ SCREENS.sums = () => {
         celebrate({ text: String(s.ans) });
         setGuide(pick(['jump', 'cheer']), praise);
         const sp = Audio.say([praise, ...done]);
-        q++; afterSpeech(sp, 3200 + Dog.extra(), () => { App.busy = false; next(); });
+        q++; const ex = Dog.extra(); afterSpeech(sp, 3200 + ex, () => { App.busy = false; next(); }, 8500 + ex); // "two plus three makes five!" must not be cut (v1.5.3)
       },
       onMiss: () => { const enc = tPick('encourage'); setGuide('wave', enc, 'wiggle'); Audio.say([enc, ...ask]); },
     });
@@ -3093,16 +3094,17 @@ SCREENS.daySing = () => {
     const cards = $$('.day-card', week);
     cards.forEach((c) => c.classList.remove('lit', 'sung'));
     play.classList.add('playing'); setGuide('cheer', T('singDays'));
-    Audio.say([T('singDays')]); await sleep(1500);
+    await Promise.all([sleep(1500), Promise.race([Audio.say([T('singDays')]), sleep(3500)])]);
     for (let lap = 0; lap < 2; lap++) {
       for (let i = 0; i < 7; i++) {
         if (!live(my)) return;
         cards.forEach((c) => c.classList.remove('lit'));
         cards[i].classList.add('lit', 'sung');
         Audio.sfx('count', [1, 3, 5, 6, 5, 3, 8][i]);
-        Audio.say([EN(DAYS[i].k)]);
+        const sp = Audio.say([EN(DAYS[i].k)]);
         setGuide(i % 2 ? 'jump' : 'cheer', DAYS[i].k);
-        await sleep(lap ? 820 : 1000);
+        // keep the beat, but never cut a day's name off (v1.5.3: "Wednesday" was clipped by the next day)
+        await Promise.all([sleep(lap ? 820 : 1000), Promise.race([sp, sleep(2200)])]);
       }
       await sleep(500);
     }
