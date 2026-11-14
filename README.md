@@ -77,6 +77,7 @@ icons/               app icons from the illustrated Lea
 tools/               cutout.py (background removal + pose crops), make_icons.py, check-no-photo.py
 tests/e2e.mjs        end-to-end walkthrough (puppeteer-core + Chrome); screenshots in shots/
 tests/creator.mjs    focused test of “Create your character”
+tests/animals.mjs    every animal has a picture, label and name clip in both voices; the game always says the name
 ```
 
 Every picture to learn is an original SVG drawn in `src/20-art.js`. Only illustrated artwork is used: no photographs are part of the app.

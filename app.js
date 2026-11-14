@@ -1,7 +1,7 @@
-/* Lea Learns 1.5.1 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.5.2 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.5.1';
+const APP_VERSION = '1.5.2';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -1312,7 +1312,10 @@ const Audio = (() => {
         clipPlayer.muted = true;
         clipPlayer.src = 'assets/voice/silence.mp3';
         const p = clipPlayer.play();
-        if (p && p.then) p.then(() => { clipPlayer.pause(); clipPlayer.muted = false; }).catch(() => { clipPlayer.muted = false; });
+        // Only stop the silent unlock clip itself: a say() started by this same tap has already swapped
+        // in the real clip, and pausing it here left "This is…" hanging until the safety timer (v1.5.2).
+        const still = () => /silence\.mp3$/.test(clipPlayer.src);
+        if (p && p.then) p.then(() => { if (still()) { clipPlayer.pause(); clipPlayer.muted = false; } }).catch(() => { if (still()) clipPlayer.muted = false; });
         else clipPlayer.muted = false;
       } catch (e) { clipPlayer.muted = false; }
     }
@@ -1332,40 +1335,87 @@ const Audio = (() => {
       .map((p) => (typeof p === 'string' ? { t: p, L: ui } : p.name ? { t: p.name, L: ui, tts: true } : { t: p.en, L: 'en' }))
       .filter((p) => p.t);
   }
+  /* Plays one queue of clips. A newer say() or hush() takes over the shared player; the old
+     queue's leftovers (its safety timer, a play() promise rejected by the new src) must then do
+     nothing: before v1.5.2 they cleared the NEW clip's onended, so the next word (often the
+     animal's name after "Show me") waited 7 s for the safety timer, or never came. */
+  /* Clips are fetched into memory (Blob URLs) as soon as a sentence starts, so the next part
+     ("ear" after "This is") switches in instantly: no network / service-worker range request
+     between two parts of one sentence, which on iPhone Safari could leave a long silence. */
+  const blobs = new Map(); // url -> Promise<objectURL|null>
+  function blobFor(url) {
+    if (blobs.has(url)) { const v = blobs.get(url); blobs.delete(url); blobs.set(url, v); return v; }
+    const pr = (window.URL && URL.createObjectURL && window.fetch)
+      ? fetch(url).then((r) => (r.ok ? r.blob() : null)).then((b) => (b && b.size > 200 ? URL.createObjectURL(b) : null)).catch(() => null)
+      : Promise.resolve(null);
+    blobs.set(url, pr);
+    if (blobs.size > 120) { const [old, op] = blobs.entries().next().value; blobs.delete(old); op.then((u) => { if (u && clipPlayer && clipPlayer.src !== u) URL.revokeObjectURL(u); }); }
+    return pr;
+  }
+  const trace = []; // { src, t0, end } of every clip actually started (tests)
+  let endQueue = null; // settles the queue that is playing now (a newer say() or hush() ends it at once)
   function playClips(urls, opts = {}) {
     const token = ++queueToken;
+    if (endQueue) endQueue();
     if (synth) { synth.cancel(); }
     if (!clipPlayer) return Promise.resolve();
-    return new Promise((resolve) => {
+    urls.forEach((u) => { if (typeof u === 'string') blobFor(u); });
+    return new Promise((res) => {
+      const resolve = () => { if (endQueue === resolve) endQueue = null; res(); };
+      endQueue = resolve;
       let i = 0;
       const next = () => {
         if (token !== queueToken || i >= urls.length) return resolve();
         const url = urls[i++];
         lastClips.push(url && url.tts ? 'tts:' + url.tts.t : url); if (lastClips.length > 40) lastClips.shift();
-        let done = false;
+        let done = false, safety = 0;
         const fin = () => {
           if (done) return; done = true;
-          clipPlayer.onended = null; clipPlayer.onerror = null;
-          setTimeout(next, 80);
+          clearTimeout(safety);
+          if (clipPlayer.onloadedmetadata === arm) { clipPlayer.onended = null; clipPlayer.onerror = null; clipPlayer.onloadedmetadata = null; } // only this clip's own handlers
+          if (token !== queueToken) return resolve();
+          setTimeout(next, 60);
+        };
+        // safety net if 'ended' never fires: 7 s until the length is known, then length + 4 s (slow audio stacks start late)
+        const arm = () => {
+          const d = clipPlayer.duration;
+          if (!done && token === queueToken && isFinite(d) && d > 0) { clearTimeout(safety); safety = setTimeout(fin, d * 1000 / (opts.clipRate || 1) + 4000); }
         };
         if (url && url.tts) { // a custom name: no clip, use the device voice for just this part
           if (!synth) return fin();
           const u = new SpeechSynthesisUtterance(url.tts.t); const v = voices[url.tts.L];
           if (v) u.voice = v; u.lang = v ? v.lang : LOCALE[url.tts.L]; u.pitch = voiceKind() === 'boy' ? 1.15 : 1.45; u.rate = 1;
-          u.onend = fin; u.onerror = fin; setTimeout(fin, 1200 + url.tts.t.length * 160);
+          u.onend = fin; u.onerror = fin; safety = setTimeout(fin, 1200 + url.tts.t.length * 160);
           try { synth.cancel(); synth.speak(u); } catch (e) { fin(); }
           return;
         }
-        clipPlayer.onended = fin;
-        clipPlayer.onerror = fin;
-        try {
-          clipPlayer.muted = false;
-          clipPlayer.playbackRate = opts.clipRate || 1;
-          clipPlayer.src = url;
-          const p = clipPlayer.play();
-          if (p && p.catch) p.catch(fin);
-        } catch (e) { fin(); }
-        setTimeout(fin, 7000);
+        const start = (src) => {
+          if (done || token !== queueToken) return;
+          const tr = { src: url, t0: performance.now(), end: 0 }; trace.push(tr); if (trace.length > 3000) trace.shift();
+          clipPlayer.onended = () => { tr.end = performance.now(); fin(); };
+          clipPlayer.onerror = () => { if (src !== url) { clipPlayer.onerror = fin; clipPlayer.src = url; const q = clipPlayer.play(); if (q && q.catch) q.catch(() => {}); } else fin(); };
+          clipPlayer.onloadedmetadata = arm;
+          safety = setTimeout(fin, 7000);
+          try {
+            clipPlayer.muted = false;
+            clipPlayer.playbackRate = opts.clipRate || 1;
+            clipPlayer.src = src;
+            let tries = 0;
+            const go = () => {
+              const p = clipPlayer.play();
+              if (p && p.catch) p.catch((e) => {
+                const mine = !done && token === queueToken && clipPlayer.src === src;
+                if (!mine) return; // a newer clip / hush took over the player
+                if (e && e.name === 'AbortError' && tries++ < 3) return setTimeout(() => { if (!done && token === queueToken && clipPlayer.src === src) go(); }, 60); // interrupted while loading: try again
+                fin();
+              });
+            };
+            go();
+          } catch (e) { fin(); }
+        };
+        // the in-memory copy if it is ready (it usually is: fetched when the sentence started), else the file
+        let gone = false; const t = setTimeout(() => { gone = true; start(url); }, 1200);
+        blobFor(url).then((b) => { if (gone) return; clearTimeout(t); start(b || url); });
       };
       next();
     });
@@ -1415,6 +1465,7 @@ const Audio = (() => {
   }
   function hush() {
     queueToken++; live = 0;
+    if (endQueue) endQueue();
     duckCount = 0;
     applyMusicVol();
     if (synth) synth.cancel();
@@ -1448,7 +1499,7 @@ const Audio = (() => {
   };
   function sfx(name, arg) { if (!Store.settings.sound) return; if (!ensureCtx()) return; try { SFX[name] && SFX[name](arg); } catch (e) {} }
 
-  return { get speaking() { return live > 0; }, get voiceKind() { return voiceKind(); }, get lastClips() { return lastClips.slice(); }, resetClips() { lastClips = []; }, warmBoy, unlock, say, hush, sfx, setMusic, voiceFor: (L) => (voices[L] ? `${voices[L].name} (${voices[L].lang})` : ''), get hasSpeech() { return !!synth; }, get listLoaded() { return listLoaded; } };
+  return { get speaking() { return live > 0; }, get voiceKind() { return voiceKind(); }, get lastClips() { return lastClips.slice(); }, get trace() { return trace.slice(); }, resetClips() { lastClips = []; trace.length = 0; }, warmBoy, unlock, say, hush, sfx, setMusic, voiceFor: (L) => (voices[L] ? `${voices[L].name} (${voices[L].lang})` : ''), get hasSpeech() { return !!synth; }, get listLoaded() { return listLoaded; } };
 })();
 
 
@@ -1502,12 +1553,21 @@ function onTap(el, fn, { sound = 'tap' } = {}) {
   return el;
 }
 
-const App = { screen: null, params: null, busy: false, timers: [] };
+const App = { screen: null, params: null, busy: false, timers: [], gen: 0 };
 const SCREENS = {};
 function later(fn, ms) { const t = setTimeout(fn, ms); App.timers.push(t); return t; }
+/* Run fn (the next round) only when the praise + answer speech (and Bacon's line, if he popped in) has finished — never cut a name off —
+   and not before minMs (the celebration). Capped, so a stuck clip can never stall the game. (v1.5.2) */
+function afterSpeech(sp, minMs, fn, maxMs = minMs + 1000) {
+  const t0 = Date.now(), gen = App.gen; let fired = false;
+  const run = () => { if (fired || gen !== App.gen) return; if (Audio.speaking && Date.now() - t0 < maxMs) { later(run, 200); return; } fired = true; fn(); };
+  const cap = () => { if (fired || gen !== App.gen) return; fired = true; fn(); };
+  later(cap, maxMs);
+  Promise.resolve(sp).then(() => { if (!fired && gen === App.gen) later(run, Math.max(minMs - (Date.now() - t0), 500)); }, () => {});
+}
 
 function go(name, params = {}) {
-  App.timers.forEach(clearTimeout); App.timers = [];
+  App.timers.forEach(clearTimeout); App.timers = []; App.gen++;
   Tour.stop(false);
   Audio.hush();
   closeOverlays();
@@ -1721,15 +1781,22 @@ const Dog = (() => {
     if (g.id === 'run') setTimeout(() => Audio.sfx('woof'), 1300);
     setTimeout(() => el.remove(), g.id === 'run' ? 3000 : 2800);
   }
+  /* Bacon never talks over the guide: before v1.5.2 his "Here's Bacon!" cut off the praise and the
+     animal's / word's name about one answer in four. Wait (up to maxMs) until the speech is over. */
+  function whenQuiet(fn, maxMs) {
+    const t0 = Date.now();
+    const tick = () => { if (Audio.speaking && Date.now() - t0 < maxMs) later(tick, 200); else fn(); };
+    tick();
+  }
   /* After a correct answer: roughly one in four, never twice in a row, at least 12 s apart. */
   function maybe() {
     sinceLast++;
     if (Date.now() - lastShow < 12000 || sinceLast < 2) return;
-    if (Math.random() < 0.28) { pending = true; later(() => show(), 1500); }
+    if (Math.random() < 0.28) { pending = true; later(() => whenQuiet(() => { if (!Tour.active) show(); }, 5000), 1500); }
   }
   /* Extra pause the activity should leave so Bacon's moment is not cut short. */
   function extra() { const p = pending; pending = false; return p ? 1800 : 0; }
-  return { show, maybe, extra, GAGS, force() { lastShow = 0; sinceLast = 5; } };
+  return { show, maybe, extra, whenQuiet, GAGS, force() { lastShow = 0; sinceLast = 5; } };
 })();
 
 
@@ -2069,7 +2136,7 @@ SCREENS.home = ({ hello } = {}) => {
     hello ? talk(T('hi', playerName()), [hiSpeech(), T('whatPlay')]) : talk(T('whatPlay'));
     // Bacon always sits on the cloud above the pencil (tap him for a gag); sometimes he also bursts in later.
     later(() => { placeDog(); dog.hidden = false; dog.classList.add('in'); }, 600);
-    if (Math.random() < 0.3) later(() => Dog.show(), 9000);
+    if (Math.random() < 0.3) later(() => Dog.whenQuiet(() => { if (!Tour.active && App.screen === 'home') Dog.show(); }, 6000), 9000); // never over the guide or her tour
   };
   return el;
 };
@@ -2396,8 +2463,8 @@ function wordQuiz(el, stage, cat) {
         const praise = tPick('praise');
         celebrate({ text: praise });
         setGuide(pick(['jump', 'cheer']), `${praise} ${word(target)}!`);
-        Audio.say([praise, EN(spoken(target))]);
-        q++; later(() => { App.busy = false; next(); }, 2300 + Dog.extra());
+        const sp = Audio.say([praise, EN(spoken(target))]);
+        q++; afterSpeech(sp, 2300 + Dog.extra(), () => { App.busy = false; next(); });
       },
       onMiss: (c) => {
         const enc = tPick('encourage');
@@ -2514,8 +2581,8 @@ function letterHunt(el, stage) {
         setGuide(pick(['jump', 'cheer']), `${praise} ${Tg.l} – ${word(letterWords(Tg)[0])}`);
         const r = $('.choice.right', area);
         if (r) r.insertAdjacentHTML('beforeend', `<span class="ch-pic">${art(letterWords(Tg)[0])}</span>`);
-        Audio.say([praise, EN(Tg.l), EN(spoken(letterWords(Tg)[0]))]);
-        q++; later(() => { App.busy = false; next(); }, 2600 + Dog.extra());
+        const sp = Audio.say([praise, EN(Tg.l), EN(spoken(letterWords(Tg)[0]))]);
+        q++; afterSpeech(sp, 2600 + Dog.extra(), () => { App.busy = false; next(); });
       },
       onMiss: (c) => { const enc = tPick('encourage'); setGuide('wave', enc, 'wiggle'); Audio.say([T('thatIs'), EN(c.key), enc, ...ask(Tg)]); },
     });
@@ -2598,9 +2665,9 @@ function traceView(el, stage, start) {
     const praise = tPick('praise');
     celebrate({ text: L().l + L().l.toLowerCase() });
     setGuide(pick(['jump', 'cheer']), praise);
-    Audio.say([praise, EN(L().l + '.')]);
+    const sp = Audio.say([praise, EN(L().l + '.')]);
     Dog.maybe();
-    later(() => load(idx + 1), 3000 + Dog.extra());
+    afterSpeech(sp, 3000 + Dog.extra(), () => load(idx + 1));
   }
   function load(i) {
     idx = (i + 26) % 26; strokes = []; done = false;
@@ -2765,10 +2832,10 @@ SCREENS.howmany = () => {
         const praise = tPick('praise');
         celebrate({ text: String(n) });
         setGuide(pick(['jump', 'cheer']), `${praise} ${n}!`);
-        Audio.say([praise, things(t, n)]);
+        const sp = Audio.say([praise, things(t, n)]);
         const pile = $('.pile', scene); const objs = $$('.obj', pile);
         objs.forEach((o, i) => setTimeout(() => { o.classList.add('counted'); $('.obj-n', o).textContent = i + 1; }, 200 + i * Math.min(160, 2000 / n)));
-        q++; later(() => { App.busy = false; next(); }, 2900 + Dog.extra());
+        q++; afterSpeech(sp, 2900 + Dog.extra(), () => { App.busy = false; next(); });
       },
       onMiss: () => { const enc = tPick('encourage'); setGuide('wave', `${enc} ${T('tapCount')}`, 'wiggle'); Audio.say([enc, T('countTogether')]); },
     });
@@ -2829,8 +2896,8 @@ SCREENS.sums = () => {
         const praise = tPick('praise');
         celebrate({ text: String(s.ans) });
         setGuide(pick(['jump', 'cheer']), praise);
-        Audio.say([praise, ...done]);
-        q++; later(() => { App.busy = false; next(); }, 3200 + Dog.extra());
+        const sp = Audio.say([praise, ...done]);
+        q++; afterSpeech(sp, 3200 + Dog.extra(), () => { App.busy = false; next(); });
       },
       onMiss: () => { const enc = tPick('encourage'); setGuide('wave', enc, 'wiggle'); Audio.say([enc, ...ask]); },
     });
@@ -2943,8 +3010,8 @@ function shapeQuiz({ screen, back, title, icon, kind }) {
         const praise = tPick('praise');
         celebrate({ text: k });
         setGuide(pick(['jump', 'cheer']), `${praise} ${obj ? thingSentence(obj, k) : k + '!'}`);
-        Audio.say([praise, EN(obj ? thingSentence(obj, k) : k)]);
-        q++; later(() => { App.busy = false; next(); }, 3000 + Dog.extra());
+        const sp = Audio.say([praise, EN(obj ? thingSentence(obj, k) : k)]);
+        q++; afterSpeech(sp, 3000 + Dog.extra(), () => { App.busy = false; next(); });
       },
       onMiss: () => { const enc = tPick('encourage'); setGuide('wave', enc, 'wiggle'); Audio.say([enc, ...ask]); },
     });
@@ -3091,8 +3158,8 @@ SCREENS.dayNext = () => {
         const praise = tPick('praise');
         celebrate({ text: DAYS[ans].k });
         setGuide(pick(['jump', 'cheer']), `${praise} ${DAYS[ans].k}!`);
-        Audio.say([praise, EN(DAYS[a].k), EN(DAYS[b].k), EN(DAYS[ans].k)]);
-        q++; later(() => { App.busy = false; next(); }, 3600 + Dog.extra());
+        const sp = Audio.say([praise, EN(DAYS[a].k), EN(DAYS[b].k), EN(DAYS[ans].k)]);
+        q++; afterSpeech(sp, 3600 + Dog.extra(), () => { App.busy = false; next(); });
       },
       onMiss: () => { const enc = tPick('encourage'); setGuide('wave', enc, 'wiggle'); Audio.say([enc, ...ask]); },
     });
@@ -3185,7 +3252,7 @@ function openParent() {
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
   }
-  window.LeaLearns = { go, Store, Dog, Tour, Audio, poseSrc, version: APP_VERSION }; // small handle for tests and debugging
+  window.LeaLearns = { go, Store, Dog, Tour, Audio, poseSrc, CATEGORIES, word, spoken, art, closeOverlays, version: APP_VERSION }; // small handle for tests and debugging
 })();
 
 })();
