@@ -2,7 +2,7 @@
 
 A cheerful, offline tablet game for little ones (made for Lea, almost 4): **English words**, the **ABC** and **numbers** with simple adding and taking away. A candy house in the clouds is home. Lea or her friend Ines guides and celebrates, and Bacon the French Bulldog pops in now and then to make everyone laugh.
 
-Made for Lea by Tomasz Zdankowski. No accounts, ads, tracking, analytics or backend. Progress is kept only in the device's `localStorage`.
+Made for Lea by Tomasz Zdankowski. No accounts, ads, tracking, analytics or backend. Progress is kept only in the device's `localStorage` (the 1.6 upgrade only adds to an existing save: apples, stars, characters and settings are kept).
 
 ## Open it
 
@@ -38,6 +38,23 @@ In the browser, the small square button in the top-right corner (next to the app
 * **Shapes:** circle, square, triangle, rectangle, oval, star, heart, diamond, pentagon and hexagon, each a friendly coloured picture with its English name spoken. **Look** shows every shape and, for most shapes, real things with that shape (the ball is a circle, the pizza is a triangle). **Find**: “Show me … triangle”. **Match**: a real thing appears (clock, window, pizza, door, egg, kite…) and the child taps its shape.
 * **Days:** Monday to Sunday, each with its own colour and a little routine picture. **Look** highlights today from the device date (“Today is Friday!”). **Sing** lights up the days one by one as the guide sings the week. **What comes next?** shows two days and a gap to fill.
 * **Lea explains:** the first time home opens, the guide (Lea, or whoever is playing) gives a short tour with her voice and a speech bubble while a glowing ring and a bouncing arrow point at each button: the lollipops, the pencil (dress-up), swap-player, Bacon, apples and stars, language, full screen, the grown-ups corner and the **?** help button. Tap anywhere for the next step, or ✕ to skip. Every game and mode explains its own controls the first time (back arrow, speaker, answers, modes); this never blocks play: tapping the game ends it. Tap **?** (top right) or tap the guide to hear it again. Grown-ups can switch the automatic explanations off in the parent corner.
+* **Adventure (v1.6):** the map lollipop on home opens a painted map where the player (Lea, Ines or whoever plays) and Bacon travel through six lands: **Apple Orchard**, **Letter Beach**, **Number Hills**, **Shape Forest**, **Rainbow Castle** and **Story Bay**. Each land is a path of numbered stepping stones; each stone is a short game (5 questions). A stone opens when the one before it is done, and the next land opens after three stones of the land before it. A locked stone or land only says “not yet”. Inside a level the back arrow returns to the land, and the end card offers *again*, *next stone* and *back to the land*.
+* **Stars and rewards (v1.6):** each level gives up to three stars (three for no or one miss, two for up to three misses, one otherwise; the best result is kept). The first time a level is done its sticker goes into **My sticker album** (golden with three stars) — open it from the stars on home or the book on the map. Stars on the map open more dressing-up costumes (own clothes, chicken, dino and bunny are free from the start; princess/prince at 3 stars, superhero 7, pirate 12, astronaut 18, banana 25 — costumes already worn before 1.6 stay open). Stickers open presents for Bacon in **Bacon’s wardrobe** (bow tie, heart sunglasses, apple hat, crown, scarf, party hat, flower crown); he wears them on the candy house and on the map.
+* **Grows with her (v1.6):** every game keeps its own level from 1 to 5 per skill (words, letters, counting, sums, shapes, days …). Three right answers in a row on the first try move that skill up; a question that needed two or more tries, or two missed questions in a row, move it gently back down. Higher levels mean more answers to choose from (2 → 3 → 4), bigger amounts and sums, small letters and look-alike letters in ABC, pentagon and hexagon among the shapes, and slightly shorter pauses between questions (speech is never cut). The levels apply both on the map and in free play from the lollipops.
+<!--v1.7-->
+* **More games (v1.7):** the big painted lollipop beside the candy house (left of the house; on a tall screen the round peppermint on the house) opens **Games**:
+  * **Pairs:** turn two cards to find the same picture (or a big and a small letter, or a number and its dots). 3 pairs at level 1, up to 8 pairs at level 5. A miss only counts when the matching card had already been seen.
+  * **Puzzle:** painted pictures of Lea, Ines and Bacon in the candy house, the orchard, on the beach and at the castle. Drag a piece onto its place (it snaps when it is close) or tap a piece and then its place. 4 pieces at level 1, up to 12, with a fainter guide picture at higher levels.
+  * **Reading:** *Which letter does it start with?* (a picture and its word, then “B is for ball.”), *Read the word* (a short printed word such as cat, hen or bus; find its picture) and *Which letter is missing?* (c?t). Easier levels play the first-letter game; reading words and missing letters come in at higher levels.
+  * **Patterns:** colours, shapes, fruit or animals in a row (AB, AAB, ABB, ABC, AABB …): what comes next?
+  * **Sorting:** put each picture in the right basket (food, animals, home, nature, body; 2 baskets, 3 from level 4), then count how many are in one basket.
+  Every new game is also a stepping stone on the map (Apple Orchard, Letter Beach, Number Hills, Shape Forest and Rainbow Castle each gained two or three stones after the old ones, so saved progress stays as it was), with stars and stickers like the others.
+<!--/v1.7-->
+<!--v1.8-->
+* **Colouring and stories (v1.8):** in **Games** (and as the stones of **Story Bay**, which opens after three Rainbow Castle stones):
+  * **Colouring:** six big line pictures (apple, candy house, Bacon, fish, flower, rainbow). Tap a colour (its English name is said), then tap a part of the picture to fill it. Pictures are kept on the device and can be finished later; the green tick says how beautiful it is.
+  * **Stories:** *Bacon’s picnic*, *The Rainbow Castle* and *Treasure on Letter Beach*. The guide reads each page (in the interface language, in the guide’s own voice) and the child helps: chooses what goes in the picnic basket, finds where Bacon is hiding, counts the apples, finds the red balloon, dresses Bacon up, picks who dances, finds a letter, digs for treasure. Nothing can go wrong: a wrong card just wobbles and the page is read again.
+<!--/v1.8-->
 * A miss is never “wrong”: the card wobbles, the guide says “try again”, and after two misses the right answer gently glows. Correct answers give stars, apples, confetti, a jump from the guide, and sometimes Bacon.
 
 ## Parent corner
@@ -51,6 +68,9 @@ In the browser, the small square button in the top-right corner (next to the app
 * a voice test,
 * change player,
 * reset progress (tap twice).
+<!--v1.9-->
+* **Progress (v1.9):** the purple *Progress* button at the top shows, for this device only: time played today, in the last 7 days (a small bar per day) and altogether; every skill with its level (1–5), how many answers were right first time and how many answers there were; *what is hard right now* (the words, letters, numbers or sums that needed the most tries lately); the adventure (map stars, stickers, lands open, stories finished, pictures coloured); and an idea for what to play next.
+<!--/v1.9-->
 
 The interface language changes the menus and the guide’s hints. **The vocabulary being learnt is always English** (apple is always “apple”, letters are English letter names).
 
@@ -69,15 +89,18 @@ The interface language changes the menus and the guide’s hints. **The vocabula
 
 ```
 index.html  styles.css  manifest.webmanifest  sw.template.js  build.mjs
-src/                 game code (concatenated in order into app.js); 22-avatar.js draws the made-up characters, 24-paint.js dresses up the painted characters, 82-shapes.js and 84-days.js are the Shapes and Days modes, 52-creator.js is the editor
+src/                 game code (concatenated in order into app.js); 16-up-i18n.js holds every 1.6 text (EN/PL/RU, recorded for both voices), 41-skill.js the adaptive levels, 42-rewards.js stars/stickers/costumes/Bacon’s presents, 43-adventure.js the map and lands, 44-album.js the sticker album and wardrobe;<!--v1.7--> 86-games.js the five new games (assets/puzzle/ holds the painted puzzle pictures made by tools/make-puzzles.py);<!--/v1.7--><!--v1.8--> 87-colouring.js and 88-stories.js;<!--/v1.8--><!--v1.9--> 89-progress.js the parent progress view;<!--/v1.9--> 22-avatar.js draws the made-up characters, 24-paint.js dresses up the painted characters, 82-shapes.js and 84-days.js are the Shapes and Days modes, 52-creator.js is the editor
 assets/character/    Lea, Ines and Bacon (transparent PNGs cut from the approved illustrations); look/ = painted characters (Leo, Maya, Sam) and costume variants (all 7 poses), hair/ = hair masks used to recolour hair on the painting
-assets/world/        candy-house backgrounds (landscape + portrait)
+assets/world/        candy-house backgrounds and the painted adventure map (landscape + portrait)
 assets/fonts/        Fredoka (Latin) + Nunito (Cyrillic) subsets, SIL OFL 1.1 (see FONTS.txt)
 icons/               app icons from the illustrated Lea
 tools/               cutout.py (background removal + pose crops), make_icons.py, check-no-photo.py
 tests/e2e.mjs        end-to-end walkthrough (puppeteer-core + Chrome); screenshots in shots/
 tests/creator.mjs    focused test of “Create your character”
-tests/animals.mjs    every animal has a picture, label and name clip in both voices; the game always says the name
+tests/upgrade.mjs    v1.6: adventure map, unlocking, adaptive levels, rewards, save migration, voice clips for every new text, layout at iPad / iPhone / MacBook sizes; screenshots in shots/upgrade/
+<!--v1.7-->tests/games.mjs      v1.7+: Pairs, Puzzle (tap and drag), Reading, Patterns, Sorting, colouring, stories, parent progress; map stones; layouts; voice clips
+tests/home-fit.mjs   the six lollipops, the pencil, Bacon and the Games lollipop never cover each other (EN / PL / RU, phones to laptops)
+<!--/v1.7-->tests/animals.mjs    every animal has a picture, label and name clip in both voices; the game always says the name
 ```
 
 Every picture to learn is an original SVG drawn in `src/20-art.js`. Only illustrated artwork is used: no photographs are part of the app.
