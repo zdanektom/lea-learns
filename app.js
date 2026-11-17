@@ -1,7 +1,7 @@
-/* Lea Learns 1.6.1 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
+/* Lea Learns 1.7.0 — generated from src/ by build.mjs. Made for Lea by Tomasz Zdankowski. */
 (() => {
 'use strict';
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.7.0';
 
 /* ===== src/00-store.js ===== */
 /* Lea Learns — progress and settings, kept only in this device's localStorage. */
@@ -10,12 +10,13 @@ const Store = (() => {
   const KEY = 'lea-learns:v1';
   const fresh = () => ({ apples: 0, stars: 0, rounds: 0, seenWords: {}, seenLetters: {}, played: {}, chars: [], looks: {}, tours: {}, settings: { player: null, tours: true, sound: true, music: true, voice: true, lang: 'en', range: 20 },
     /* v1.6.0 (all additive, so older saves load unchanged): adaptive skill levels, adventure-map levels, rewards, time played. */
-    schema: 2, skills: {}, levels: {}, stickers: {}, unlocks: { outfits: [], acc: [] }, dogLook: {}, time: {}, colourings: {}, stories: {}, seen: {} });
+    schema: 2, skills: {}, levels: {}, stickers: {}, unlocks: { outfits: [], acc: [] }, dogLook: {}, time: {}, colourings: {}, stories: {}, seen: {}, gallery: [] });
   const OBJ = ['skills', 'levels', 'stickers', 'dogLook', 'time', 'colourings', 'stories', 'seen', 'played', 'seenWords', 'seenLetters', 'tours', 'looks'];
   let d;
   try { const raw = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; const old = Object.keys(raw).length > 0 && !(raw.schema >= 2); d = Object.assign(fresh(), raw); d.settings = Object.assign(fresh().settings, d.settings || {}); if (!Array.isArray(d.chars)) d.chars = []; if (!d.looks || typeof d.looks !== 'object') d.looks = {};
     OBJ.forEach((k) => { if (!d[k] || typeof d[k] !== 'object' || Array.isArray(d[k])) d[k] = {}; });
     if (!d.unlocks || typeof d.unlocks !== 'object') d.unlocks = {};
+    if (!Array.isArray(d.gallery)) d.gallery = [];
     ['outfits', 'acc'].forEach((k) => { if (!Array.isArray(d.unlocks[k])) d.unlocks[k] = []; });
     if (old) { // first start after the 1.6 upgrade: costumes already being worn stay unlocked
       d.schema = 2;
@@ -1335,7 +1336,7 @@ const PAINT = (() => {
   const BOYS = ['leo', 'sam'];
   const base = (who, pose, outfit) => {
     const o = outfit && outfit !== 'original' ? outfit : 'original';
-    return o === 'original' && (who === 'lea' || who === 'ines') ? `assets/character/${who}-${pose}.png` : `assets/character/look/${who}-${o}-${pose}.webp`;
+    return o === 'original' && (who === 'lea' || who === 'ines') ? `assets/character/${who}-${pose}.webp` : `assets/character/look/${who}-${o}-${pose}.webp`;
   };
   const maskOf = (who, pose, outfit) => `assets/character/hair/${who}${outfit && outfit !== 'original' ? '-' + outfit : ''}-${pose}.png`;
   const valid = (l) => {
@@ -1500,6 +1501,14 @@ const Audio = (() => {
     if (boyLoading) return boyLoading;
     boyLoading = getJson('assets/voice/boy/manifest.json').then((m) => { boyManifest = m || {}; return boyManifest; });
     return boyLoading;
+  }
+  /* v1.7: Bacon's warm, deep "bear" praise voice (assets/voice/bear, precached, a few lines per language). */
+  let bearManifest = null, bearLoading = null;
+  function loadBear() {
+    if (bearManifest) return Promise.resolve(bearManifest);
+    if (bearLoading) return bearLoading;
+    bearLoading = getJson('assets/voice/bear/manifest.json').then((m) => { bearManifest = m || {}; return bearManifest; });
+    return bearLoading;
   }
   loadClips();
   /* 'girl' | 'boy' — from the current guide character (40-ui.js). */
@@ -1809,6 +1818,20 @@ const Audio = (() => {
     const p = clipManifest && (!boy || boyManifest) ? go() : Promise.all([loadClips(), boy ? loadBoy() : null]).then(go);
     return Promise.resolve(p).then((r) => { duckMusic(false); return r; }, () => { duckMusic(false); });
   }
+  /* v1.7: one random bear praise line in the interface language. Resolves with its text ('' if there is none / voice is off);
+     counts as speech, so afterSpeech() and the next round wait for it. */
+  function bearPraise() {
+    if (!Store.settings.voice) return Promise.resolve('');
+    return loadBear().then((m) => {
+      const L = lang(); const keys = Object.keys(m).filter((k) => k.startsWith(L + ':'));
+      if (!keys.length) return '';
+      const k = pick(keys);
+      live++; duckMusic(true);
+      const done = () => { live = Math.max(0, live - 1); duckMusic(false); };
+      playClips([m[k]]).then(done, done);
+      return k.slice(L.length + 1);
+    }).catch(() => '');
+  }
   function hush() {
     queueToken++; live = 0;
     if (endQueue) endQueue();
@@ -1845,7 +1868,7 @@ const Audio = (() => {
   };
   function sfx(name, arg) { if (!Store.settings.sound) return; if (!ensureCtx()) return; try { SFX[name] && SFX[name](arg); } catch (e) {} }
 
-  return { get speaking() { return live > 0; }, get voiceKind() { return voiceKind(); }, get lastClips() { return lastClips.slice(); }, get trace() { return trace.slice(); }, resetClips() { lastClips = []; trace.length = 0; }, warmBoy, unlock, say, hush, sfx, setMusic, voiceFor: (L) => (voices[L] ? `${voices[L].name} (${voices[L].lang})` : ''), get hasSpeech() { return !!synth; }, get listLoaded() { return listLoaded; } };
+  return { get speaking() { return live > 0; }, get voiceKind() { return voiceKind(); }, get lastClips() { return lastClips.slice(); }, get trace() { return trace.slice(); }, resetClips() { lastClips = []; trace.length = 0; }, warmBoy, unlock, say, bearPraise, hush, sfx, setMusic, voiceFor: (L) => (voices[L] ? `${voices[L].name} (${voices[L].lang})` : ''), get hasSpeech() { return !!synth; }, get listLoaded() { return listLoaded; } };
 })();
 
 
@@ -2209,7 +2232,7 @@ const Rewards = (() => {
   function dogFigure(cls = '') {
     const look = Store.data.dogLook || {};
     const on = ACC.filter((a) => look[a.slot] === a.id && accOpen(a.id));
-    return `<span class="dog-fig ${cls}"><img src="assets/character/dog-front.png" alt="" draggable="false">${on.map((a) => `<span class="dog-acc acc-${a.id}" style="--x:${a.x}%;--y:${a.y}%;--w:${a.w}%">${accSvg(a.id)}</span>`).join('')}</span>`;
+    return `<span class="dog-fig ${cls}"><img src="assets/character/dog-front.webp" alt="" draggable="false">${on.map((a) => `<span class="dog-acc acc-${a.id}" style="--x:${a.x}%;--y:${a.y}%;--w:${a.w}%">${accSvg(a.id)}</span>`).join('')}</span>`;
   }
   function wear(id) {
     const a = ACC.find((x) => x.id === id); if (!a || !accOpen(id)) return false;
@@ -2425,7 +2448,7 @@ SCREENS.album = ({ tab = 'stickers', from = 'home' } = {}) => {
   const stage = h(`<main class="stage album-stage">
     <div class="album-tabs" role="tablist">
       <button class="al-tab ${tab === 'stickers' ? 'on' : ''}" data-tab="stickers" aria-label="${U('stickers')}">${ALBUM_SVG}<span>${U('stickers')}</span><b>${Rewards.stickerCount()}</b></button>
-      <button class="al-tab ${tab === 'dog' ? 'on' : ''}" data-tab="dog" aria-label="${U('wardrobe')}"><img src="assets/character/dog-front.png" alt="" draggable="false"><span>${DOG_NAME}</span></button>
+      <button class="al-tab ${tab === 'dog' ? 'on' : ''}" data-tab="dog" aria-label="${U('wardrobe')}"><img src="assets/character/dog-front.webp" alt="" draggable="false"><span>${DOG_NAME}</span></button>
     </div>
     <div class="album-body scroll"></div>
   </main>`);
@@ -2483,16 +2506,22 @@ const Dog = (() => {
     const text = g.id === 'jump' ? T('achoo') : g.id === 'party' ? T('praise')[4] : T('woof');
     const el = h(`<div class="dog-show gag-${g.id}" aria-hidden="true">
       <div class="dog-wrap">${g.id === 'run' ? `<span class="dog-apple">${art('apple')}</span>` : ''}
-        <img class="dog-img" src="assets/character/dog-${g.pose}.png" alt="" draggable="false">
+        <img class="dog-img" src="assets/character/dog-${g.pose}.webp" alt="" draggable="false">
         <span class="dog-say">${text}</span><span class="dog-name">${DOG_NAME}</span></div></div>`);
     document.body.appendChild(el);
     const sitting = document.querySelector('.screen:not(.screen-out) .home-dog');
     if (sitting) { sitting.style.visibility = 'hidden'; setTimeout(() => { sitting.style.visibility = ''; }, 3000); }
     // The guide announces him in the interface language; his name is always "Bacon".
-    if (gagId !== 'quiet') { setGuide('cheer', T('hereDog')); Audio.say([T('hereDog')]); }
+    // v1.7: in his party hat or with his big grin, Bacon then praises in his warm, deep "bear" voice.
+    const praises = gagId !== 'quiet' && (g.id === 'party' || g.id === 'grin');
+    if (gagId !== 'quiet') {
+      setGuide('cheer', T('hereDog'));
+      const sp = Audio.say([T('hereDog')]);
+      if (praises) sp.then(() => (document.body.contains(el) ? Audio.bearPraise() : '')).then((t) => { const s = el.querySelector('.dog-say'); if (t && s) s.textContent = t; });
+    }
     setTimeout(() => Audio.sfx(g.sfx), g.id === 'jump' ? 500 : 250);
     if (g.id === 'run') setTimeout(() => Audio.sfx('woof'), 1300);
-    setTimeout(() => el.remove(), g.id === 'run' ? 3000 : 2800);
+    setTimeout(() => el.remove(), g.id === 'run' ? 3000 : praises ? 5200 : 2800);
   }
   /* Bacon never talks over the guide: before v1.5.2 his "Here's Bacon!" cut off the praise and the
      animal's / word's name about one answer in four. Wait (up to maxMs) until the speech is over. */
@@ -2508,7 +2537,7 @@ const Dog = (() => {
     if (Math.random() < 0.28) { pending = true; later(() => whenQuiet(() => { if (!Tour.active) show(); }, 5000), 1500); }
   }
   /* Extra pause the activity should leave so Bacon's moment is not cut short. */
-  function extra() { const p = pending; pending = false; return p ? 1800 : 0; }
+  function extra() { const p = pending; pending = false; return p ? 3400 : 0; } // v1.7: room for his bear praise line
   return { show, maybe, extra, whenQuiet, GAGS, force() { lastShow = 0; sinceLast = 5; } };
 })();
 
@@ -2522,66 +2551,9 @@ const Dog = (() => {
    The texts below are also read by tools/gen-voice.py (between the TOUR-JSON markers) to record the clips. */
 const Tour = (() => {
   const TXT = /*TOUR-JSON*/{
-    "en": {
-      "hello": "Hi! Let me show you around!", "lollies": "Tap a lollipop to play a game.", "pencil": "The pencil dresses me up!",
-      "swap": "Tap here to change who plays.", "dog": "This is Bacon! Tap him for a surprise.", "score": "Here are your apples and stars.",
-      "lang": "Here you change the language.", "fs": "This button makes the game fill the whole screen.",
-      "parent": "Grown-ups: hold this corner for three seconds.", "help": "Tap the question mark and I’ll show you again!",
-      "back": "The arrow takes you back.", "helpGame": "Tap the question mark to hear me again.",
-      "cats": "Pick a group of pictures.", "modes3": "Look, find, then say: three little steps.",
-      "tapPic": "Tap a picture to hear its name.", "speaker": "Tap the speaker to hear it again.", "pickRight": "Then tap the right picture.",
-      "sayIt": "Say the word, then tap to check.", "abcModes": "Look at letters, find them, or trace them.",
-      "tapLetter": "Tap a letter to hear it.", "trace": "Trace the letter with your finger.",
-      "numModes": "Count, how many, or adding. Pick one!", "numStrip": "Tap a number to count things.",
-      "countEach": "Tap each thing to count it.", "tapAnswer": "Then tap the answer.", "sumLook": "Look at the groups of things.",
-      "shapeModes": "Look at shapes, find them, or match real things.", "tapShapeHear": "Tap a shape to hear its name.",
-      "tapShape2": "Tap the right shape.", "matchThing": "What shape is this thing? Tap its shape.",
-      "dayModes": "Look at the days, sing them, or guess what comes next.", "todayStar": "The star shows today.",
-      "tapDayHear": "Tap a day to hear it.", "singPlay": "Tap play and sing along!", "seqNext": "Which day comes next? Tap it.",
-      "crTabs": "Pick who, clothes and hair colour.", "crDice": "The dice makes a surprise!", "crSave": "The green tick saves it.",
-      "gamesHub": "Tap a picture to choose a game.", "gamesDoor": "The big lollipop by the house has more games!", "mapLands": "Tap a land to start an adventure!", "mapAlbum": "Your stickers are in this book.",
-      "landStones": "Tap a stone to play. You can win three stars!", "albumTabs": "Here are your stickers and Bacon’s presents."
-    },
-    "pl": {
-      "hello": "Cześć! Pokażę ci, co tu jest!", "lollies": "Dotknij lizaka, żeby zagrać.", "pencil": "Ołówkiem możesz mnie przebrać!",
-      "swap": "Tu zmienisz, kto gra.", "dog": "To jest Bacon! Dotknij go, będzie niespodzianka.", "score": "Tu są twoje jabłka i gwiazdki.",
-      "lang": "Tu zmieniasz język.", "fs": "Ten przycisk włącza pełny ekran.",
-      "parent": "Dorośli: przytrzymajcie ten róg przez trzy sekundy.", "help": "Dotknij znaku zapytania, a pokażę ci jeszcze raz!",
-      "back": "Strzałka zabiera cię z powrotem.", "helpGame": "Dotknij znaku zapytania, a powtórzę.",
-      "cats": "Wybierz grupę obrazków.", "modes3": "Patrz, znajdź, powiedz: trzy małe kroki.",
-      "tapPic": "Dotknij obrazka, a usłyszysz nazwę.", "speaker": "Dotknij głośnika, żeby usłyszeć jeszcze raz.", "pickRight": "Potem dotknij właściwego obrazka.",
-      "sayIt": "Powiedz słowo, potem dotknij i sprawdź.", "abcModes": "Oglądaj litery, szukaj ich albo rysuj palcem.",
-      "tapLetter": "Dotknij litery, żeby ją usłyszeć.", "trace": "Rysuj literę palcem.",
-      "numModes": "Liczenie, ile jest, albo dodawanie. Wybierz!", "numStrip": "Dotknij liczby i policz rzeczy.",
-      "countEach": "Dotykaj po kolei i licz.", "tapAnswer": "Potem dotknij odpowiedzi.", "sumLook": "Popatrz na grupki rzeczy.",
-      "shapeModes": "Oglądaj kształty, szukaj ich albo dopasuj rzeczy.", "tapShapeHear": "Dotknij kształtu, a usłyszysz nazwę.",
-      "tapShape2": "Dotknij właściwego kształtu.", "matchThing": "Jaki kształt ma ta rzecz? Dotknij go.",
-      "dayModes": "Oglądaj dni, śpiewaj je albo zgadnij, co dalej.", "todayStar": "Gwiazdka pokazuje dzisiaj.",
-      "tapDayHear": "Dotknij dnia, żeby go usłyszeć.", "singPlay": "Dotknij i śpiewaj razem ze mną!", "seqNext": "Który dzień jest następny? Dotknij go.",
-      "crTabs": "Wybierz, kto, ubranie i kolor włosów.", "crDice": "Kostka robi niespodziankę!", "crSave": "Zielony znaczek zapisuje.",
-      "gamesHub": "Dotknij obrazka, żeby wybrać grę.", "gamesDoor": "Duży lizak przy domku ma więcej gier!", "mapLands": "Dotknij krainy, żeby zacząć przygodę!", "mapAlbum": "Twoje naklejki są w tej książeczce.",
-      "landStones": "Dotknij kamyczka, żeby zagrać. Możesz zdobyć trzy gwiazdki!", "albumTabs": "Tu są twoje naklejki i prezenty dla Bacona."
-    },
-    "ru": {
-      "hello": "Привет! Я всё тебе покажу!", "lollies": "Нажми на леденец, чтобы играть.", "pencil": "Карандашом можно меня переодеть!",
-      "swap": "Здесь можно поменять, кто играет.", "dog": "Это Bacon! Нажми на него, будет сюрприз.", "score": "Здесь твои яблоки и звёзды.",
-      "lang": "Здесь меняется язык.", "fs": "Эта кнопка включает полный экран.",
-      "parent": "Взрослые: держите этот уголок три секунды.", "help": "Нажми на вопросик, и я покажу ещё раз!",
-      "back": "Стрелка возвращает назад.", "helpGame": "Нажми на вопросик, и я повторю.",
-      "cats": "Выбери группу картинок.", "modes3": "Смотри, найди, скажи: три маленьких шага.",
-      "tapPic": "Нажми на картинку и услышишь название.", "speaker": "Нажми на динамик, чтобы послушать ещё раз.", "pickRight": "Потом нажми на правильную картинку.",
-      "sayIt": "Скажи слово, потом нажми и проверь.", "abcModes": "Смотри на буквы, ищи их или обводи пальцем.",
-      "tapLetter": "Нажми на букву, чтобы её услышать.", "trace": "Обведи букву пальцем.",
-      "numModes": "Считать, сколько, или складывать. Выбирай!", "numStrip": "Нажми на число и посчитай.",
-      "countEach": "Нажимай на каждую вещь и считай.", "tapAnswer": "Потом нажми на ответ.", "sumLook": "Посмотри на группы вещей.",
-      "shapeModes": "Смотри на формы, ищи их или подбирай вещи.", "tapShapeHear": "Нажми на форму и услышишь название.",
-      "tapShape2": "Нажми на правильную форму.", "matchThing": "Какой формы эта вещь? Нажми на форму.",
-      "dayModes": "Смотри на дни, пой их или угадай, что дальше.", "todayStar": "Звёздочка показывает сегодня.",
-      "tapDayHear": "Нажми на день, чтобы его услышать.", "singPlay": "Нажми и пой вместе со мной!", "seqNext": "Какой день следующий? Нажми на него.",
-      "crTabs": "Выбери, кто, одежду и цвет волос.", "crDice": "Кубик делает сюрприз!", "crSave": "Зелёная галочка сохраняет.",
-      "gamesHub": "Нажми на картинку, чтобы выбрать игру.", "gamesDoor": "Большой леденец у домика — там ещё игры!", "mapLands": "Нажми на страну, чтобы начать приключение!", "mapAlbum": "Твои наклейки в этой книжке.",
-      "landStones": "Нажми на камушек, чтобы играть. Можно получить три звезды!", "albumTabs": "Здесь твои наклейки и подарки для Bacon."
-    }
+    "en": {"hello": "Hi! Let me show you around!", "lollies": "Tap a lollipop to play a game.", "pencil": "The pencil dresses me up!", "swap": "Tap here to change who plays.", "dog": "This is Bacon! Tap him for a surprise.", "score": "Here are your apples and stars.", "lang": "Here you change the language.", "fs": "This button makes the game fill the whole screen.", "parent": "Grown-ups: hold this corner for three seconds.", "help": "Tap the question mark and I’ll show you again!", "back": "The arrow takes you back.", "helpGame": "Tap the question mark to hear me again.", "cats": "Pick a group of pictures.", "modes3": "Look, find, then say: three little steps.", "tapPic": "Tap a picture to hear its name.", "speaker": "Tap the speaker to hear it again.", "pickRight": "Then tap the right picture.", "sayIt": "Say the word, then tap to check.", "abcModes": "Look at letters, find them, or trace them.", "tapLetter": "Tap a letter to hear it.", "trace": "Trace the letter with your finger.", "numModes": "Count, how many, or adding. Pick one!", "numStrip": "Tap a number to count things.", "countEach": "Tap each thing to count it.", "tapAnswer": "Then tap the answer.", "sumLook": "Look at the groups of things.", "shapeModes": "Look at shapes, find them, or match real things.", "tapShapeHear": "Tap a shape to hear its name.", "tapShape2": "Tap the right shape.", "matchThing": "What shape is this thing? Tap its shape.", "dayModes": "Look at the days, sing them, or guess what comes next.", "todayStar": "The star shows today.", "tapDayHear": "Tap a day to hear it.", "singPlay": "Tap play and sing along!", "seqNext": "Which day comes next? Tap it.", "crTabs": "Pick who, clothes and hair colour.", "crDice": "The dice makes a surprise!", "crSave": "The green tick saves it.", "gamesHub": "Tap a picture to choose a game.", "gamesDoor": "The big lollipop by the house has more games!", "mapLands": "Tap a land to start an adventure!", "mapAlbum": "Your stickers are in this book.", "landStones": "Tap a stone to play. You can win three stars!", "albumTabs": "Here are your stickers and Bacon’s presents.", "cpPick": "Tap a picture to colour it.", "cpGallery": "Your finished pictures are here.", "clPot": "The paint pot colours a whole part.", "clCrayon": "The crayon draws, and stays inside the lines!", "clUndo": "Oops? This arrow takes it back.", "clDone": "Finished? Tap the green tick!"},
+    "pl": {"hello": "Cześć! Pokażę ci, co tu jest!", "lollies": "Dotknij lizaka, żeby zagrać.", "pencil": "Ołówkiem możesz mnie przebrać!", "swap": "Tu zmienisz, kto gra.", "dog": "To jest Bacon! Dotknij go, będzie niespodzianka.", "score": "Tu są twoje jabłka i gwiazdki.", "lang": "Tu zmieniasz język.", "fs": "Ten przycisk włącza pełny ekran.", "parent": "Dorośli: przytrzymajcie ten róg przez trzy sekundy.", "help": "Dotknij znaku zapytania, a pokażę ci jeszcze raz!", "back": "Strzałka zabiera cię z powrotem.", "helpGame": "Dotknij znaku zapytania, a powtórzę.", "cats": "Wybierz grupę obrazków.", "modes3": "Patrz, znajdź, powiedz: trzy małe kroki.", "tapPic": "Dotknij obrazka, a usłyszysz nazwę.", "speaker": "Dotknij głośnika, żeby usłyszeć jeszcze raz.", "pickRight": "Potem dotknij właściwego obrazka.", "sayIt": "Powiedz słowo, potem dotknij i sprawdź.", "abcModes": "Oglądaj litery, szukaj ich albo rysuj palcem.", "tapLetter": "Dotknij litery, żeby ją usłyszeć.", "trace": "Rysuj literę palcem.", "numModes": "Liczenie, ile jest, albo dodawanie. Wybierz!", "numStrip": "Dotknij liczby i policz rzeczy.", "countEach": "Dotykaj po kolei i licz.", "tapAnswer": "Potem dotknij odpowiedzi.", "sumLook": "Popatrz na grupki rzeczy.", "shapeModes": "Oglądaj kształty, szukaj ich albo dopasuj rzeczy.", "tapShapeHear": "Dotknij kształtu, a usłyszysz nazwę.", "tapShape2": "Dotknij właściwego kształtu.", "matchThing": "Jaki kształt ma ta rzecz? Dotknij go.", "dayModes": "Oglądaj dni, śpiewaj je albo zgadnij, co dalej.", "todayStar": "Gwiazdka pokazuje dzisiaj.", "tapDayHear": "Dotknij dnia, żeby go usłyszeć.", "singPlay": "Dotknij i śpiewaj razem ze mną!", "seqNext": "Który dzień jest następny? Dotknij go.", "crTabs": "Wybierz, kto, ubranie i kolor włosów.", "crDice": "Kostka robi niespodziankę!", "crSave": "Zielony znaczek zapisuje.", "gamesHub": "Dotknij obrazka, żeby wybrać grę.", "gamesDoor": "Duży lizak przy domku ma więcej gier!", "mapLands": "Dotknij krainy, żeby zacząć przygodę!", "mapAlbum": "Twoje naklejki są w tej książeczce.", "landStones": "Dotknij kamyczka, żeby zagrać. Możesz zdobyć trzy gwiazdki!", "albumTabs": "Tu są twoje naklejki i prezenty dla Bacona.", "cpPick": "Dotknij obrazka, żeby go pokolorować.", "cpGallery": "Tu są twoje gotowe obrazki.", "clPot": "Puszka z farbą koloruje cały kawałek.", "clCrayon": "Kredką rysujesz i nie wyjdziesz za linie!", "clUndo": "Ups? Ta strzałka cofa.", "clDone": "Gotowe? Dotknij zielonego ptaszka!"},
+    "ru": {"hello": "Привет! Я всё тебе покажу!", "lollies": "Нажми на леденец, чтобы играть.", "pencil": "Карандашом можно меня переодеть!", "swap": "Здесь можно поменять, кто играет.", "dog": "Это Bacon! Нажми на него, будет сюрприз.", "score": "Здесь твои яблоки и звёзды.", "lang": "Здесь меняется язык.", "fs": "Эта кнопка включает полный экран.", "parent": "Взрослые: держите этот уголок три секунды.", "help": "Нажми на вопросик, и я покажу ещё раз!", "back": "Стрелка возвращает назад.", "helpGame": "Нажми на вопросик, и я повторю.", "cats": "Выбери группу картинок.", "modes3": "Смотри, найди, скажи: три маленьких шага.", "tapPic": "Нажми на картинку и услышишь название.", "speaker": "Нажми на динамик, чтобы послушать ещё раз.", "pickRight": "Потом нажми на правильную картинку.", "sayIt": "Скажи слово, потом нажми и проверь.", "abcModes": "Смотри на буквы, ищи их или обводи пальцем.", "tapLetter": "Нажми на букву, чтобы её услышать.", "trace": "Обведи букву пальцем.", "numModes": "Считать, сколько, или складывать. Выбирай!", "numStrip": "Нажми на число и посчитай.", "countEach": "Нажимай на каждую вещь и считай.", "tapAnswer": "Потом нажми на ответ.", "sumLook": "Посмотри на группы вещей.", "shapeModes": "Смотри на формы, ищи их или подбирай вещи.", "tapShapeHear": "Нажми на форму и услышишь название.", "tapShape2": "Нажми на правильную форму.", "matchThing": "Какой формы эта вещь? Нажми на форму.", "dayModes": "Смотри на дни, пой их или угадай, что дальше.", "todayStar": "Звёздочка показывает сегодня.", "tapDayHear": "Нажми на день, чтобы его услышать.", "singPlay": "Нажми и пой вместе со мной!", "seqNext": "Какой день следующий? Нажми на него.", "crTabs": "Выбери, кто, одежду и цвет волос.", "crDice": "Кубик делает сюрприз!", "crSave": "Зелёная галочка сохраняет.", "gamesHub": "Нажми на картинку, чтобы выбрать игру.", "gamesDoor": "Большой леденец у домика — там ещё игры!", "mapLands": "Нажми на страну, чтобы начать приключение!", "mapAlbum": "Твои наклейки в этой книжке.", "landStones": "Нажми на камушек, чтобы играть. Можно получить три звезды!", "albumTabs": "Здесь твои наклейки и подарки для Bacon.", "cpPick": "Нажми на картинку, чтобы её раскрасить.", "cpGallery": "Здесь твои готовые картинки.", "clPot": "Баночка с краской красит целую часть.", "clCrayon": "Карандаш рисует и не выходит за линии!", "clUndo": "Ой? Эта стрелка отменяет.", "clDone": "Готово? Нажми на зелёную галочку!"}
   }/*END-TOUR-JSON*/;
   const LBL = { en: { help: 'Help', skip: 'Skip' }, pl: { help: 'Pomoc', skip: 'Pomiń' }, ru: { help: 'Помощь', skip: 'Пропустить' } };
   const tt = (k) => (TXT[lang()] || TXT.en)[k] || TXT.en[k];
@@ -2600,6 +2572,8 @@ const Tour = (() => {
     daySing: [['singPlay', '.sing-play']], dayNext: [['seqNext', '.quiz-area']],
     creator: [['crTabs', '.cr-tabs'], ['crDice', '.cr-dice'], ['crSave', '.cr-save']],
     map: [['mapLands', '.land-spot.here'], ['mapAlbum', '.album-btn']], games: [['gamesHub', '.num-modes']], land: [['landStones', '.land-path']], album: [['albumTabs', '.album-tabs']],
+    colourPick: [['cpPick', '.cp-grid'], ['cpGallery', '.cp-gallery']], // v1.7 colouring book
+    colouring: [['clPot', '.cl-tool[data-tool="fill"]'], ['clCrayon', '.cl-tool[data-tool="brush"]'], ['clUndo', '.cl-undo'], ['clDone', '.cl-done']],
   };
   const MODES = {
     'category:look': [['tapPic', '.word-grid']], 'category:find': QUIZ, 'category:say': [['sayIt', '.say-box']],
@@ -2725,6 +2699,277 @@ const Tour = (() => {
   function button() { const b = h(`<button class="help-btn" type="button" aria-label="${lbl('help')}" title="${lbl('help')}">?</button>`); onTap(b, replay, { sound: 'pop' }); return b; }
   return { TXT, auto, run, replay, stop, button, place, stepsFor, next: () => next(), get active() { return cur ? { screen: cur.name, step: cur.steps[cur.i] && cur.steps[cur.i][0], sel: cur.steps[cur.i] && cur.steps[cur.i][1], i: cur.i, n: cur.steps.length } : null; } };
 })();
+
+
+/* ===== src/47-fx.js ===== */
+/* Lea Learns 1.7 — feel and finish, kept in one module so other parts of the game stay untouched:
+   - FX bus: other modules hear game moments (right answer, gentle retry, round end) by listening to the sound effects;
+   - sparkles that burst where the finger (or mouse / keyboard focus) touched on a right answer;
+   - MacBook keyboard: Esc goes back, arrows move between buttons, Enter / Space press, 1–9 pick an answer, letters in ABC;
+   - the guide's bubble hides when the prompt bar already shows the same words (less to read);
+   - a small "new version" button when an update is ready. */
+const FX = (() => {
+  const subs = {};
+  const on = (name, fn) => { (subs[name] = subs[name] || []).push(fn); };
+  const emit = (name, arg) => (subs[name] || []).forEach((fn) => { try { fn(arg); } catch (e) {} });
+  /* Listen to the sound effects instead of changing every game: 'correct' = a right answer, 'again' = try again,
+     'fanfare' = round end. Wrapping keeps whatever Audio.sfx does (also changes made by others to it). */
+  const raw = Audio.sfx;
+  Audio.sfx = (name, arg) => { const r = raw(name, arg); emit('sfx:' + name, arg); return r; };
+  let lastX = innerWidth / 2, lastY = innerHeight / 2;
+  document.addEventListener('pointerup', (e) => { lastX = e.clientX; lastY = e.clientY; }, true);
+  document.addEventListener('keydown', () => { const a = document.activeElement; if (a && a !== document.body) { const r = a.getBoundingClientRect(); lastX = r.left + r.width / 2; lastY = r.top + r.height / 2; } }, true);
+  const STAR = '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 6 L61 37 L94 38 L68 58 L77 91 L50 72 L23 91 L32 58 L6 38 L39 37 Z"/></svg>';
+  const SPARK_COLOURS = ['#ffd54f', '#ff8a65', '#f06292', '#81d4fa', '#aed581', '#ce93d8'];
+  function sparkle(x = lastX, y = lastY, n = 12) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const layer = h('<div class="fx-sparks" aria-hidden="true"></div>');
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.random() * 0.4, d = 50 + Math.random() * 70;
+      const s = h(`<span class="fx-spark" style="left:${x}px;top:${y}px;--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d}px;--c:${SPARK_COLOURS[i % SPARK_COLOURS.length]};--s:${0.5 + Math.random() * 0.7};--d:${Math.random() * 0.08}s">${STAR}</span>`);
+      layer.appendChild(s);
+    }
+    layer.appendChild(h(`<span class="fx-ring" style="left:${x}px;top:${y}px"></span>`));
+    document.body.appendChild(layer); setTimeout(() => layer.remove(), 900);
+  }
+  on('sfx:correct', () => sparkle());
+
+  /* ---------- keyboard (MacBook) ---------- */
+  const S = '.screen:not(.screen-out) ';
+  const shown = (e) => { if (!e || e.disabled || e.hidden || e.closest('[hidden]')) return false; const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2 && getComputedStyle(e).visibility !== 'hidden'; };
+  const press = (el) => { if (!el) return; el.focus({ preventScroll: true }); el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); };
+  const scope = () => { const o = [...document.querySelectorAll('.overlay')].pop(); return o || document.querySelector('.screen:not(.screen-out)'); };
+  // the game's own buttons first, the top bar (back, help) last
+  const buttons = () => { const sc = scope(); if (!sc) return []; const all = [...sc.querySelectorAll('button, [tabindex]:not([tabindex="-1"])')].filter(shown); return [...all.filter((e) => !e.closest('.bar')), ...all.filter((e) => e.closest('.bar'))]; };
+  document.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (document.querySelector('.tour.block') && e.key !== 'Escape') return;
+    const k = e.key;
+    if (k === 'Escape' || k === 'Backspace') {
+      e.preventDefault();
+      if (document.querySelector('.tour')) { Tour.stop(true); return; }
+      const ov = [...document.querySelectorAll('.overlay')].pop();
+      if (ov) { const c = ov.querySelector('.p-close, .close, .home, .gift-close') ; if (c && shown(c)) press(c); else ov.remove(); return; }
+      const back = document.querySelector(S + '.bar .home-btn'); if (back) press(back);
+      return;
+    }
+    if (k.startsWith('Arrow')) {
+      const list = buttons(); if (!list.length) return; e.preventDefault();
+      const i = list.indexOf(document.activeElement), fwd = k === 'ArrowRight' || k === 'ArrowDown';
+      const n = i < 0 ? 0 : (i + (fwd ? 1 : -1) + list.length) % list.length; list[n].focus(); return;
+    }
+    if (/^[1-9]$/.test(k)) {
+      const sc = scope(); if (!sc) return;
+      const opts = [...sc.querySelectorAll('.choices:not(.solved) .choice, .lolly, .num-tile, .cat-tile, .cp-page, .land-spot, .paint')].filter(shown);
+      const el = opts[+k - 1]; if (el) { e.preventDefault(); press(el); } return;
+    }
+    if (/^[a-z]$/i.test(k)) {
+      const tile = document.querySelector(`${S}.letter-tile[data-letter="${k.toUpperCase()}"]`);
+      if (tile && shown(tile)) { e.preventDefault(); press(tile); }
+    }
+  });
+  document.addEventListener('pointerdown', () => document.body.classList.remove('kbd'), true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Tab' || e.key.startsWith('Arrow')) document.body.classList.add('kbd'); }, true);
+
+  /* ---------- less to read: the bubble hides when the prompt bar says the same ---------- */
+  const norm = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  setInterval(() => {
+    const b = document.querySelector(S + '.guide .bubble'); if (!b) return;
+    const p = document.querySelector(S + '.prompt-word, ' + S + '.prompt');
+    const dup = !!(p && !b.hidden && norm(b.textContent) && norm(p.textContent).includes(norm(b.textContent)) && !Tour.active);
+    b.classList.toggle('dup', dup);
+  }, 300);
+
+  /* ---------- update ready ---------- */
+  const LBL = { en: 'New version', pl: 'Nowa wersja', ru: 'Новая версия' };
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    const had = !!navigator.serviceWorker.controller;
+    let ready = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!had || ready) return; ready = true;
+      const b = h(`<button class="upd-pill" aria-label="${LBL[lang()] || LBL.en}"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M38 24 A14 14 0 1 1 30 11" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M27 4 L34 11 L26 17" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${LBL[lang()] || LBL.en}</span></button>`);
+      document.body.appendChild(b); onTap(b, () => location.reload(), { sound: 'pop' });
+      // nobody is looking (app in the background) and she is not in the middle of a game: just take the new version
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && (App.screen === 'home' || App.screen === 'gate')) location.reload(); });
+    });
+  }
+  return { on, emit, sparkle };
+})();
+
+
+/* ===== src/48-companion.js ===== */
+/* Lea Learns 1.7 — Bacon as a companion. On every game screen he sits at the guide's feet and reacts: he jumps for joy
+   at a right answer, tilts his head at a "try again", throws a party at the end of a round, and does a trick when
+   tapped (sound effects only, so he never talks over the guide). On the home screen he can be fed: tapping him while there are apples sends one apple flying into his mouth
+   (Store.data.bacon.fed counts them; every fifth apple he dances).
+   He speaks only with the bear praise voice (Audio.bearPraise, owned by the voice code): at the end of a round, after the
+   guide has finished, and when he dances for his fifth apple. At most one bear line every 20 s. */
+const Companion = (() => {
+  const POSE = (p) => `assets/character/dog-${p}.webp`;
+  const S = '.screen:not(.screen-out) ';
+  const HEART = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 42 C10 32 4 24 4 16 A10 10 0 0 1 24 12 A10 10 0 0 1 44 16 C44 24 38 32 24 42 Z"/></svg>';
+  const state = () => { const d = Store.data; if (!d.bacon || typeof d.bacon !== 'object') d.bacon = { fed: 0, last: 0 }; return d.bacon; };
+  const cur = () => document.querySelector(S + '.bc-dog');
+  function hearts(at, n = 3) {
+    const r = at.getBoundingClientRect();
+    for (let i = 0; i < n; i++) {
+      const s = h(`<span class="bc-heart" aria-hidden="true" style="left:${r.left + r.width * (0.3 + Math.random() * 0.4)}px;top:${r.top + r.height * 0.2}px;--dx:${(Math.random() - 0.5) * 60}px;--d:${i * 0.12}s">${HEART}</span>`);
+      document.body.appendChild(s); setTimeout(() => s.remove(), 1500);
+    }
+  }
+  function act(dog, pose, cls, ms = 1000) {
+    if (!dog) return;
+    clearTimeout(dog._t);
+    dog.querySelector('img').src = POSE(pose);
+    dog.classList.remove('bc-hop', 'bc-tilt', 'bc-spin', 'bc-wag'); void dog.offsetWidth; if (cls) dog.classList.add(cls);
+    dog._t = setTimeout(() => { if (!dog.isConnected) return; dog.querySelector('img').src = POSE('sit'); dog.classList.remove('bc-hop', 'bc-tilt', 'bc-spin'); dog.classList.add('bc-wag'); }, ms);
+  }
+  /* put Bacon at the guide's feet on every game screen that has a guide */
+  function attach(screen) {
+    if (!screen || screen.querySelector('.bc-dog')) return;
+    const feet = screen.querySelector('.guide .guide-lea'); if (!feet || screen.dataset.screen === 'home' || screen.dataset.screen === 'gate') return;
+    const dog = h(`<div class="bc-dog bc-wag" role="button" tabindex="-1" aria-label="Bacon"><img src="${POSE('sit')}" alt="" draggable="false"></div>`);
+    feet.appendChild(dog);
+    let taps = 0;
+    dog.addEventListener('pointerup', (e) => {
+      e.stopPropagation(); taps++;
+      const trick = taps % 4 === 0 ? ['roll', 'bc-spin', 'boing'] : pick([['grin', 'bc-hop', 'woof'], ['jump', 'bc-hop', 'woof'], ['front', 'bc-tilt', 'sneeze']]);
+      act(dog, trick[0], trick[1], 1100); Audio.sfx(trick[2]); hearts(dog, 2);
+    });
+  }
+  new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1 && n.classList.contains('screen')) setTimeout(() => attach(n), 0); })))
+    .observe(document.getElementById('app') || document.body, { childList: true, subtree: false });
+  FX.on('sfx:correct', () => { const d = cur(); if (d) { act(d, pick(['jump', 'grin']), 'bc-hop', 1100); hearts(d, 2); } });
+  FX.on('sfx:again', () => act(cur(), 'front', 'bc-tilt', 1200));
+  /* ---------- Bacon's own words: one bear praise line, with a speech bubble next to him ---------- */
+  let lastBear = 0;
+  function bear(dog, then, bubble = true) {
+    if (!dog || Date.now() - lastBear < 20000 || !Store.settings.voice || typeof Audio.bearPraise !== 'function') return;
+    lastBear = Date.now();
+    const go = () => {
+      if (!dog.isConnected || document.querySelector('.dog-show') || Tour.active) return;
+      if (then) then();
+      Audio.bearPraise().then((t) => {
+        if (!t || !dog.isConnected) return;
+        dog.classList.remove('bc-hop', 'bc-talk'); void dog.offsetWidth; dog.classList.add('bc-talk'); setTimeout(() => dog.classList.remove('bc-talk'), 2400);
+        if (!bubble) { dog.dataset.said = t; return; }
+        const r = dog.getBoundingClientRect(), right = r.left + r.width / 2 > innerWidth / 2;
+        const b = h(`<span class="bc-say${right ? ' bc-say-r' : ''}" aria-hidden="true"></span>`); b.textContent = t;
+        b.style.top = Math.max(8, r.top - 8) + 'px';
+        if (right) b.style.right = Math.max(8, innerWidth - r.right) + 'px'; else b.style.left = Math.max(8, r.left) + 'px';
+        document.body.appendChild(b); setTimeout(() => b.remove(), 3600);
+      });
+    };
+    (typeof Dog !== 'undefined' && Dog.whenQuiet) ? Dog.whenQuiet(go, 4000) : go();
+  }
+  /* End of a round: the result card covers the game, so Bacon hops onto the card next to Lea in his party hat and,
+     once the guide has finished, says his bear praise line. Other fanfares (stories, days, new land): he parties in place. */
+  FX.on('sfx:fanfare', () => {
+    const card = document.querySelector('.round-end .end-lea');
+    if (card && !card.querySelector('.bc-end')) {
+      const d = h(`<div class="bc-dog bc-end bc-hop" aria-hidden="true"><img src="${POSE('party')}" alt="" draggable="false"></div>`);
+      card.appendChild(d); bear(d, null, false); return; // no bubble: the card is small on phones and Lea can't read yet
+    }
+    const d = cur(); act(d, 'party', 'bc-hop', 2200);
+  });
+
+  /* ---------- feeding on the home screen ---------- */
+  let busy = false;
+  function feed(homeDog) {
+    const st = state(), d = Store.data;
+    if (busy || d.apples < 1 || Date.now() - st.last < 2500) return false;
+    busy = true; st.last = Date.now(); d.apples -= 1; st.fed += 1; Store.save();
+    $$('.apples-chip b').forEach((b) => { b.textContent = d.apples; });
+    const from = (document.querySelector(S + '.apples-chip') || homeDog).getBoundingClientRect(), to = homeDog.getBoundingClientRect();
+    const a = h(`<span class="bc-apple" aria-hidden="true" style="left:${from.left + from.width / 2}px;top:${from.top + from.height / 2}px;--tx:${to.left + to.width * 0.5 - from.left - from.width / 2}px;--ty:${to.top + to.height * 0.45 - from.top - from.height / 2}px">${art('apple')}</span>`);
+    document.body.appendChild(a); Audio.sfx('whoosh');
+    setTimeout(() => {
+      a.remove(); Audio.sfx('pop'); setTimeout(() => Audio.sfx('woof'), 250);
+      const img = homeDog.querySelector('.dog-fig > img'); const old = img && img.getAttribute('src');
+      if (img) img.src = POSE(st.fed % 5 === 0 ? 'party' : 'grin');
+      homeDog.classList.remove('bc-hop'); void homeDog.offsetWidth; homeDog.classList.add('bc-hop'); hearts(homeDog, st.fed % 5 === 0 ? 6 : 3);
+      if (st.fed % 5 === 0) { FX.sparkle(to.left + to.width / 2, to.top + to.height / 2, 16); Audio.sfx('sparkle'); later(() => bear(homeDog), 700); }
+      setTimeout(() => { if (img && img.isConnected) img.src = old; homeDog.classList.remove('bc-hop'); busy = false; }, 1600);
+    }, 650);
+    return true;
+  }
+  // runs before the home screen's own "tap Bacon = surprise" handler; with apples to give, he eats one instead
+  document.addEventListener('pointerup', (e) => {
+    const dog = e.target.closest && e.target.closest(S + '.home-dog'); if (!dog || Tour.active) return;
+    const st = state();
+    if (Store.data.apples > 0 && Date.now() - st.last > 15000 && !document.querySelector('.dog-show')) {
+      e.stopPropagation(); dog.classList.remove('pressed'); feed(dog);
+    }
+  }, true);
+  return { attach, feed, act, state, bear, resetBear() { lastBear = 0; } };
+})();
+
+
+/* ===== src/49-surprise.js ===== */
+/* Lea Learns 1.7 — daily surprise. Once a day, a little while after the home screen opens, a wrapped present
+   appears. Tapping it opens it: inside is the English word of the day (a picture she taps to hear again, chosen from
+   words she has not met yet when possible) and three apples, which she can feed to Bacon. Store.data.daily keeps the
+   day and the word; the parent panel's reset clears it like everything else. */
+const Surprise = (() => {
+  const GIFT = `<svg class="gift-svg" viewBox="0 0 200 200" aria-hidden="true">
+    <g class="gift-lid"><rect x="26" y="62" width="148" height="34" rx="8" fill="#e53935" stroke="${INK}" stroke-width="6"/><rect x="88" y="62" width="24" height="34" fill="#ffd54f" stroke="${INK}" stroke-width="5"/>
+      <path d="M100 62 C80 30 46 36 58 56 C66 66 88 64 100 62 C112 64 134 66 142 56 C154 36 120 30 100 62 Z" fill="#ffd54f" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/></g>
+    <rect x="36" y="96" width="128" height="88" rx="8" fill="#ef5350" stroke="${INK}" stroke-width="6"/><rect x="88" y="96" width="24" height="88" fill="#ffd54f" stroke="${INK}" stroke-width="5"/>
+    <circle cx="62" cy="130" r="7" fill="#fff" opacity=".8"/><circle cx="140" cy="158" r="5" fill="#fff" opacity=".8"/></svg>`;
+  const today = () => dayKey();
+  const st = () => { const d = Store.data; if (!d.daily || typeof d.daily !== 'object') d.daily = {}; return d.daily; };
+  const allWords = () => CATEGORIES.flatMap((c) => c.items);
+  function wordFor(day) {
+    const s = st(); if (s.day === day && s.word) return s.word;
+    const all = allWords(), fresh = all.filter((w) => !Store.data.seenWords[w] && w !== s.word);
+    return pick(fresh.length ? fresh : all.filter((w) => w !== s.word));
+  }
+  const due = () => st().opened !== today();
+  function open() {
+    if (document.querySelector('.gift-ov')) return;
+    const day = today(), w = wordFor(day); const s = st(); s.day = day; s.word = w; Store.save();
+    const o = h(`<div class="overlay gift-ov" role="dialog" aria-label="${T('surprise')}">
+      <button class="round-btn gift-close" aria-label="Close">${ICON.close}</button>
+      <div class="gift-stage"><button class="gift-box" aria-label="${T('surprise')}">${GIFT}</button>
+        <div class="gift-inside" hidden><button class="gift-word" aria-label="${word(w)}"><span class="gift-art">${art(w)}</span><b lang="en">${word(w)}</b></button>
+        <div class="gift-apples">${[0, 1, 2].map((i) => `<span style="--i:${i}">${art('apple')}</span>`).join('')}</div></div></div></div>`);
+    document.body.appendChild(o);
+    Audio.sfx('sparkle'); Audio.say([T('surprise')]);
+    const box = o.querySelector('.gift-box'), inside = o.querySelector('.gift-inside');
+    let opened = false;
+    const reveal = () => {
+      if (opened) return; opened = true;
+      o.classList.add('open'); Audio.sfx('fanfare');
+      setTimeout(() => {
+        box.hidden = true; inside.hidden = false; FX.sparkle(innerWidth / 2, innerHeight / 2, 18);
+        s.opened = day; s.count = (s.count || 0) + 1; Store.data.seenWords[w] = 1; Store.addApple(3); refreshApples();
+        Audio.say([T('thisIs'), EN(spoken(w)), U('treasure').b4ok]);
+      }, 700);
+    };
+    onTap(box, reveal, { sound: 'pop' });
+    onTap(o.querySelector('.gift-word'), () => { Audio.say([EN(spoken(w))]); FX.sparkle(); }, { sound: 'pop' });
+    onTap(o.querySelector('.gift-close'), () => { o.remove(); }, { sound: 'whoosh' });
+    return o;
+  }
+  /* home screen: after the greeting (and never during her first-time tour), the present arrives */
+  new MutationObserver(() => {
+    const scr = document.querySelector('.screen:not(.screen-out)');
+    if (!scr || scr.dataset.screen !== 'home' || scr._giftChecked) return; scr._giftChecked = true;
+    if (window.LEA_NO_AUTO_TOUR || window.LEA_NO_SURPRISE || !due() || !Store.settings.player) return;
+    // the very first day is busy enough (her first tour): presents start from the next day
+    const s = st(); if (!s.first) { s.first = today(); Store.save(); } if (s.first === today()) return;
+    let waited = 0;
+    const tryNow = () => {
+      if (!scr.isConnected || App.screen !== 'home') return;
+      if ((Tour.active || Audio.speaking || document.querySelector('.overlay, .dog-show')) && waited < 20000) { waited += 500; setTimeout(tryNow, 500); return; }
+      if (!Tour.active && !document.querySelector('.overlay') && due()) open();
+    };
+    setTimeout(tryNow, 2500);
+  }).observe(document.getElementById('app') || document.body, { childList: true });
+  return { open, due, wordFor };
+})();
+setTimeout(() => { if (window.LeaLearns) Object.assign(window.LeaLearns, { FX, Companion, Surprise }); }, 0); // handles for tests and debugging
 
 
 /* ===== src/50-home.js ===== */
@@ -4018,7 +4263,7 @@ function gameScreen(cls, title, icon, colour = GAMES_C) {
 const praiseSay = (...en) => { const p = tPick('praise'); return { text: p, sp: Audio.say([p, ...en.map((w) => EN(w))]) }; };
 const missGuide = (text) => { setGuide('wave', text, 'wiggle'); Audio.sfx('again'); };
 
-const castImgMini = () => `<img class="st-mini" src="assets/character/dog-sit.png" alt="" draggable="false">`;
+const castImgMini = () => `<img class="st-mini" src="assets/character/dog-sit.webp" alt="" draggable="false">`;
 SCREENS.games = () => {
   const el = h(`<section class="activity games-home" style="--c:${GAMES_C}"></section>`);
   el.appendChild(topBar({ back: 'home', title: U('games'), colour: GAMES_C }));
@@ -4341,109 +4586,304 @@ SCREENS.sorting = (params = {}) => {
 
 
 /* ===== src/87-colouring.js ===== */
-/* Lea Learns 1.8 — colouring pages. Big simple shapes: pick a colour, tap a part of the picture to fill it. Every page
-   is kept on this device (Store.data.colourings), so a picture can be finished another day. */
+/* Lea Learns 1.7 — colouring book. Clean line-art pictures made of big, closed parts. Two tools: the paint pot fills a
+   part with one tap (the colour spreads from the finger), the crayon draws freely but always stays inside the part where
+   the stroke began. Undo, a rainbow paint, a gentle glow on a part still white, and every finished picture goes into
+   "My pictures" (Store.data.gallery). Work in progress is kept per picture (Store.data.colourings). */
 const COLOUR_C = '#ec407a';
-const PAINTS = [['red', '#e53935'], ['orange', '#fb8c00'], ['yellow', '#fdd835'], ['green', '#43a047'], ['blue', '#1e88e5'], ['purple', '#8e44ad'], ['pink', '#f06292'], ['brown', '#8d5a34'], ['black', '#37474f'], ['white', '#ffffff']];
-const K2 = 'stroke="#4a2f27" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"';
-const CR_P = (id, d) => `<path class="cr-r" data-r="${id}" d="${d}" ${K2}/>`;
-const CR_C = (id, cx, cy, r) => `<circle class="cr-r" data-r="${id}" cx="${cx}" cy="${cy}" r="${r}" ${K2}/>`;
-const CR_E = (id, cx, cy, rx, ry, rot = 0) => `<ellipse class="cr-r" data-r="${id}" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${rot} ${cx} ${cy})" ${K2}/>`;
+
+const PAINTS = [['red', '#e53935'], ['orange', '#fb8c00'], ['yellow', '#fdd835'], ['green', '#43a047'], ['blue', '#81d4fa', 'blue'], ['blue', '#1e88e5'],
+  ['purple', '#8e44ad'], ['pink', '#f48fb1'], ['brown', '#8d5a34'], ['black', '#37474f'], ['white', '#ffffff'], ['rainbow', 'rainbow']];
+/* Shape helpers (viewBox 400 × 400). Everything becomes a plain closed path, so a part never moves when it is coloured. */
+const CB = (() => {
+  const f = (n) => Math.round(n * 10) / 10;
+  const C = (cx, cy, r) => `M${f(cx - r)} ${f(cy)} a${r} ${r} 0 1 0 ${f(2 * r)} 0 a${r} ${r} 0 1 0 ${f(-2 * r)} 0 Z`;
+  const E = (cx, cy, rx, ry, rot = 0) => { const a = (rot * Math.PI) / 180, dx = rx * Math.cos(a), dy = rx * Math.sin(a);
+    return `M${f(cx - dx)} ${f(cy - dy)} A${rx} ${ry} ${rot} 1 0 ${f(cx + dx)} ${f(cy + dy)} A${rx} ${ry} ${rot} 1 0 ${f(cx - dx)} ${f(cy - dy)} Z`; };
+  const R = (x, y, w, h, r = 0) => `M${x + r} ${y} H${x + w - r} Q${x + w} ${y} ${x + w} ${y + r} V${y + h - r} Q${x + w} ${y + h} ${x + w - r} ${y + h} H${x + r} Q${x} ${y + h} ${x} ${y + h - r} V${y + r} Q${x} ${y} ${x + r} ${y} Z`;
+  const STAR = (cx, cy, R1, R2, n = 5, rot = -90) => 'M' + Array.from({ length: n * 2 }, (_, i) => { const a = ((rot + (i * 180) / n) * Math.PI) / 180, r = i % 2 ? R2 : R1; return `${f(cx + r * Math.cos(a))} ${f(cy + r * Math.sin(a))}`; }).join(' L') + ' Z';
+  const MIRROR = (d) => d.replace(/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g, (m, x, y) => `${f(400 - +x)} ${y}`);
+  /* Icing with round drips hanging below y. */
+  const DRIP = (x0, x1, y, h, n) => { const w = (x1 - x0) / n; let d = `M${x0} ${y - h} H${x1} V${y}`;
+    for (let i = n - 1; i >= 0; i--) { const a = x0 + i * w; d += ` C${f(a + w)} ${y + (i % 2 ? 14 : 24)} ${f(a)} ${y + (i % 2 ? 14 : 24)} ${f(a)} ${y}`; } return d + ' Z'; };
+  return { C, E, R, STAR, MIRROR, DRIP };
+})();
+const SKY = 'M3 3 H397 V397 H3 Z';
+/* A picture: parts in painting order [id, path, partId it is drawn inside (optional)], plus line details on top. */
 const COLOUR_PAGES = {
-  apple: () => `${CR_P('bg', 'M4 4 H396 V396 H4 Z')}
-    ${CR_P('apple', 'M200 120 C160 88 82 96 70 176 C58 262 120 352 172 352 C188 352 192 344 200 344 C208 344 212 352 228 352 C280 352 342 262 330 176 C318 96 240 88 200 120 Z')}
-    ${CR_P('stem', 'M196 122 C192 96 196 72 210 52 L222 60 C210 78 208 100 210 122 Z')}
-    ${CR_P('leaf', 'M214 80 C236 46 288 40 312 58 C292 96 246 104 214 80 Z')}
-    ${CR_P('shine', 'M110 180 C112 150 130 132 152 126 C140 146 132 168 130 196 Z')}
-    ${CR_P('worm', 'M300 250 C330 240 350 262 340 284 C332 300 312 296 306 282 C300 270 284 262 300 250 Z')}
-    <circle cx="326" cy="258" r="5" fill="#4a2f27"/>`,
-  house: () => `${CR_P('sky', 'M4 4 H396 V300 H4 Z')}${CR_P('grass', 'M4 300 H396 V396 H4 Z')}
-    ${CR_C('sun', 340, 62, 36)}
-    ${CR_P('chimney', 'M262 110 V60 H300 V146 Z')}
-    ${CR_P('roof', 'M60 190 L200 66 L340 190 Z')}
-    ${CR_P('walls', 'M88 186 H312 V330 H88 Z')}
-    ${CR_P('door', 'M176 330 V262 C176 242 224 242 224 262 V330 Z')}
-    ${CR_P('window1', 'M108 214 H156 V258 H108 Z')}${CR_P('window2', 'M244 214 H292 V258 H244 Z')}
-    ${CR_P('heart', 'M200 176 C190 160 166 168 174 186 C180 198 200 210 200 210 C200 210 220 198 226 186 C234 168 210 160 200 176 Z')}
-    ${CR_P('path', 'M176 330 H224 L250 396 H150 Z')}`,
-  bacon: () => `${CR_P('bg', 'M4 4 H396 V396 H4 Z')}
-    ${CR_P('earL', 'M112 150 C76 110 64 52 92 30 C126 40 156 88 160 128 Z')}${CR_P('earR', 'M288 150 C324 110 336 52 308 30 C274 40 244 88 240 128 Z')}
-    ${CR_P('innerL', 'M118 132 C98 104 92 70 100 54 C120 66 138 96 142 120 Z')}${CR_P('innerR', 'M282 132 C302 104 308 70 300 54 C280 66 262 96 258 120 Z')}
-    ${CR_P('head', 'M200 108 C110 108 70 172 74 236 C78 306 132 350 200 350 C268 350 322 306 326 236 C330 172 290 108 200 108 Z')}
-    ${CR_P('patch', 'M206 112 C258 112 296 150 300 206 C302 236 272 246 252 230 C232 214 222 178 206 160 Z')}
-    ${CR_P('muzzle', 'M200 236 C150 236 128 262 132 290 C138 322 170 334 200 334 C230 334 262 322 268 290 C272 262 250 236 200 236 Z')}
-    ${CR_P('nose', 'M176 246 C176 232 224 232 224 246 C224 262 206 272 200 272 C194 272 176 262 176 246 Z')}
-    ${CR_P('tongue', 'M186 300 C186 330 214 330 214 300 Z')}
-    <circle cx="152" cy="200" r="13" fill="#4a2f27"/><circle cx="248" cy="200" r="13" fill="#4a2f27"/><circle cx="156" cy="195" r="4" fill="#fff"/><circle cx="252" cy="195" r="4" fill="#fff"/>
-    <path d="M200 272 V290 M200 290 C188 300 172 298 166 288 M200 290 C212 300 228 298 234 288" fill="none" ${K2}/>
-    ${CR_P('collar', 'M118 330 C160 360 240 360 282 330 L292 352 C246 384 154 384 108 352 Z')}${CR_C('tag', 200, 372, 14)}`,
-  fish: () => `${CR_P('water', 'M4 4 H396 V396 H4 Z')}${CR_P('sand', 'M4 340 C100 320 300 360 396 330 V396 H4 Z')}
-    ${CR_P('weed', 'M48 340 C30 290 70 260 52 210 C80 240 76 290 70 340 Z')}
-    ${CR_P('tail', 'M286 200 L360 140 C368 180 368 220 360 260 Z')}
-    ${CR_P('body', 'M60 200 C100 120 230 110 290 200 C230 290 100 280 60 200 Z')}
-    ${CR_P('fin', 'M150 138 C170 96 220 96 240 140 Z')}
-    ${CR_P('stripe1', 'M150 132 C130 170 130 230 150 268 L178 272 C158 230 158 170 178 128 Z')}
-    ${CR_P('stripe2', 'M214 136 C196 170 196 230 214 264 L238 252 C224 222 224 178 238 148 Z')}
-    ${CR_C('eye', 104, 190, 16)}<circle cx="106" cy="190" r="7" fill="#4a2f27"/>
-    ${CR_C('b1', 82, 110, 14)}${CR_C('b2', 110, 70, 10)}${CR_C('b3', 70, 44, 8)}`,
-  flower: () => `${CR_P('bg', 'M4 4 H396 V396 H4 Z')}
-    ${CR_P('stem', 'M194 210 H206 V320 H194 Z')}
-    ${CR_P('leafL', 'M196 280 C160 250 120 262 110 280 C140 300 176 300 196 280 Z')}${CR_P('leafR', 'M204 250 C240 220 280 232 290 250 C260 270 224 270 204 250 Z')}
-    ${[0, 60, 120, 180, 240, 300].map((a, i) => CR_E('petal' + i, 200 + 62 * Math.cos((a * Math.PI) / 180), 140 + 62 * Math.sin((a * Math.PI) / 180), 44, 30, a)).join('')}
-    ${CR_C('centre', 200, 140, 40)}
-    ${CR_P('pot', 'M128 316 H272 L254 392 H146 Z')}${CR_P('rim', 'M118 300 H282 V326 H118 Z')}`,
-  rainbow: () => `${CR_P('sky', 'M4 4 H396 V396 H4 Z')}
-    ${['r1', 'r2', 'r3', 'r4', 'r5'].map((id, i) => { const o = 170 - i * 24, n = o - 24; return CR_P(id, `M${200 - o} 300 A${o} ${o} 0 0 1 ${200 + o} 300 H${200 + n} A${n} ${n} 0 0 0 ${200 - n} 300 Z`); }).join('')}
-    ${CR_P('cloudL', 'M14 316 C10 286 44 272 62 288 C74 262 116 268 118 298 C140 296 150 326 128 338 H26 C8 336 4 322 14 316 Z')}
-    ${CR_P('cloudR', 'M282 316 C278 286 312 272 330 288 C342 262 384 268 386 298 C396 302 398 330 384 338 H294 C276 336 272 322 282 316 Z')}
-    ${CR_C('sun', 340, 62, 34)}`,
+  apple: { say: 'apple', parts: [
+    ['sky', SKY], ['sun', CB.C(58, 58, 32)], ['ground', 'M3 326 C110 306 290 306 397 326 V397 H3 Z'],
+    ['stem', 'M193 120 C190 94 195 70 208 50 C214 44 224 48 221 58 C210 78 208 98 210 120 Z'],
+    ['leaf', 'M214 80 C232 44 288 36 318 56 C300 94 250 106 214 80 Z'],
+    ['apple', 'M200 112 C170 88 96 86 76 160 C58 228 96 330 160 348 C180 353 190 344 200 344 C210 344 220 353 240 348 C304 330 342 228 324 160 C304 86 230 88 200 112 Z'],
+    ['shine', 'M116 172 C118 142 138 124 162 118 C152 140 146 162 144 188 C136 200 116 194 116 172 Z'],
+    ['worm', CB.C(296, 238, 30)],
+  ], lines: `<path d="M222 76 C252 64 282 58 306 57" fill="none"/><path d="M58 14 V4 M58 102 V112 M14 58 H4 M102 58 H112 M27 27 L20 20 M89 89 L96 96 M27 89 L20 96 M89 27 L96 20"/>
+    <circle cx="286" cy="232" r="5" fill="${INK}"/><circle cx="306" cy="232" r="5" fill="${INK}"/><path d="M284 248 Q296 258 308 248" fill="none"/>` },
+  bacon: { say: 'dog', parts: [
+    ['sky', SKY], ['floor', 'M3 312 H397 V397 H3 Z'], ['rug', CB.E(200, 358, 176, 32)],
+    ['body', 'M128 362 C118 300 140 236 200 232 C260 236 282 300 272 362 Z'],
+    ['legL', 'M148 296 C150 330 146 352 144 362 C144 378 188 378 188 364 L186 296 Z'], ['legR', CB.MIRROR('M148 296 C150 330 146 352 144 362 C144 378 188 378 188 364 L186 296 Z')],
+    ['earL', 'M120 160 C92 120 82 64 104 42 C132 48 168 92 178 130 Z'], ['earR', CB.MIRROR('M120 160 C92 120 82 64 104 42 C132 48 168 92 178 130 Z')],
+    ['earInL', 'M126 144 C108 114 102 82 110 64 C130 76 152 104 160 128 Z'], ['earInR', CB.MIRROR('M126 144 C108 114 102 82 110 64 C130 76 152 104 160 128 Z')],
+    ['head', 'M200 104 C128 104 90 140 90 196 C90 252 134 286 200 286 C266 286 310 252 310 196 C310 140 272 104 200 104 Z'],
+    ['patch', 'M118 172 C122 140 168 134 180 160 C190 186 170 214 144 212 C126 210 116 192 118 172 Z'],
+    ['muzzle', 'M200 196 C152 196 132 218 136 242 C140 268 170 278 200 278 C230 278 260 268 264 242 C268 218 248 196 200 196 Z'],
+    ['nose', 'M178 208 C178 196 222 196 222 208 C222 222 206 230 200 230 C194 230 178 222 178 208 Z'],
+    ['tongue', 'M186 252 C186 284 214 284 214 252 Z'],
+    ['collar', 'M146 276 C176 296 224 296 254 276 L260 298 C226 320 174 320 140 298 Z'], ['tag', CB.C(200, 326, 15)],
+    ['ball', CB.C(334, 344, 28)],
+  ], lines: `<circle cx="150" cy="178" r="13" fill="${INK}"/><circle cx="250" cy="178" r="13" fill="${INK}"/><circle cx="155" cy="173" r="4.5" fill="#fff" stroke="none"/><circle cx="255" cy="173" r="4.5" fill="#fff" stroke="none"/>
+    <path d="M200 230 V248 M200 248 C190 258 174 256 168 246 M200 248 C210 258 226 256 232 246 M184 128 Q200 120 216 128 M160 376 V364 M172 376 V364 M228 376 V364 M240 376 V364" fill="none"/>
+    <path d="M308 336 C324 330 344 330 360 338 M310 354 C326 360 346 360 360 352" fill="none"/>` },
+  flower: { say: 'flower', parts: [
+    ['sky', SKY], ['sun', CB.C(344, 56, 32)], ['ground', 'M3 344 H397 V397 H3 Z'],
+    ['stem', 'M192 170 C188 220 190 262 192 304 H208 C210 262 212 220 208 170 Z'],
+    ['leafL', 'M194 270 C168 240 122 240 104 258 C128 288 170 292 194 270 Z'], ['leafR', 'M206 232 C232 202 278 204 296 220 C272 250 230 254 206 232 Z'],
+    ...[0, 60, 120, 180, 240, 300].map((a, i) => ['petal' + i, CB.E(200 + 58 * Math.cos(((a - 90) * Math.PI) / 180), 132 + 58 * Math.sin(((a - 90) * Math.PI) / 180), 44, 30, a - 90)]),
+    ['centre', CB.C(200, 132, 38)],
+    ['pot', 'M134 322 H266 L250 392 H150 Z'], ['rim', CB.R(120, 300, 160, 30, 10)],
+  ], lines: `<circle cx="186" cy="124" r="5" fill="${INK}"/><circle cx="214" cy="124" r="5" fill="${INK}"/><path d="M186 142 Q200 154 214 142" fill="none"/><path d="M118 266 Q150 260 186 270 M214 232 Q250 222 286 222" fill="none"/>` },
+  house: { say: 'house', parts: [
+    ['sky', SKY], ['sun', CB.C(346, 60, 32)], ['cloud', 'M36 98 C30 74 58 60 78 72 C88 48 126 50 132 76 C154 72 164 98 148 110 H50 C36 110 30 104 36 98 Z'],
+    ['grass', 'M3 302 C120 286 280 286 397 302 V397 H3 Z'],
+    ['trunk', 'M326 304 V224 H352 V304 Z'], ['crown', CB.C(340, 196, 46)],
+    ['chimney', 'M256 124 V64 H292 V156 Z'], ['roof', 'M62 198 L200 76 L338 198 Z'],
+    ['walls', 'M92 192 H308 V324 H92 Z'], ['roundWin', CB.C(200, 152, 20)],
+    ['window1', CB.R(112, 216, 52, 50, 6)], ['window2', CB.R(236, 216, 52, 50, 6)],
+    ['door', 'M172 324 V262 C172 236 228 236 228 262 V324 Z'], ['path', 'M172 324 H228 L262 397 H138 Z'],
+  ], lines: `<circle cx="216" cy="292" r="5" fill="${INK}"/><path d="M346 14 V4 M346 106 V116 M300 60 H290 M392 60 H398 M314 28 L307 21 M378 92 L385 99 M314 92 L307 99 M378 28 L385 21" fill="none"/>` },
+  fish: { say: 'fish', parts: [
+    ['water', SKY], ['sand', 'M3 334 C100 316 300 350 397 326 V397 H3 Z'],
+    ['weedL', 'M44 340 C24 290 66 262 48 204 C84 236 82 290 74 340 Z'], ['weedR', 'M350 334 C334 294 372 268 356 222 C390 250 388 296 378 332 Z'],
+    ['star', CB.STAR(292, 356, 30, 14)],
+    ['finTop', 'M148 140 C164 92 222 90 246 142 Z'], ['finLow', 'M156 250 C166 290 210 292 224 256 Z'],
+    ['tail', 'M280 196 L354 134 C370 176 370 218 354 260 Z'],
+    ['body', 'M62 196 C104 114 236 108 292 196 C236 284 104 278 62 196 Z'],
+    ['stripe1', 'M146 90 C124 160 124 240 146 300 L176 300 C154 240 154 160 176 90 Z', 'body'],
+    ['stripe2', 'M212 90 C192 160 192 240 212 300 L240 300 C220 240 220 160 240 90 Z', 'body'],
+    ['eye', CB.C(108, 186, 18)], ['b1', CB.C(84, 100, 16)], ['b2', CB.C(112, 58, 13)], ['b3', CB.C(150, 26, 11)],
+  ], lines: `<circle cx="111" cy="186" r="8" fill="${INK}"/><path d="M74 216 Q88 226 102 218" fill="none"/>` },
+  bus: { say: 'bus', parts: [
+    ['sky', SKY], ['sun', CB.C(62, 62, 32)], ['road', 'M3 318 H397 V397 H3 Z'],
+    ['bus', CB.R(36, 128, 330, 174, 30)], ['stripe', 'M30 252 H372 V274 H30 Z', 'bus'],
+    ['win1', CB.R(62, 154, 64, 60, 10)], ['win2', CB.R(144, 154, 64, 60, 10)], ['win3', CB.R(226, 154, 56, 60, 10)],
+    ['door', CB.R(300, 154, 44, 120, 8)], ['light', CB.C(354, 286, 12)],
+    ['tyre1', CB.C(112, 304, 36)], ['hub1', CB.C(112, 304, 15)], ['tyre2', CB.C(286, 304, 36)], ['hub2', CB.C(286, 304, 15)],
+  ], lines: `<path d="M24 366 H74 M134 366 H184 M244 366 H294 M354 366 H392 M322 154 V274" fill="none"/>` },
+  cat: { say: 'cat', parts: [
+    ['wall', SKY], ['floor', 'M3 326 H397 V397 H3 Z'], ['cushion', 'M74 340 C74 302 326 302 326 340 C326 376 74 376 74 340 Z'],
+    ['tail', 'M262 330 C320 320 346 270 322 234 C314 222 298 230 304 244 C320 272 300 304 258 308 Z'],
+    ['body', 'M200 184 C146 184 122 262 128 340 H272 C278 262 254 184 200 184 Z'], ['belly', 'M200 238 C172 238 162 292 166 340 H234 C238 292 228 238 200 238 Z'],
+    ['earL', 'M124 132 L134 48 L190 96 Z'], ['earR', CB.MIRROR('M124 132 L134 48 L190 96 Z')],
+    ['head', CB.E(200, 142, 86, 70)],
+    ['earInL', 'M140 108 L144 72 L170 94 Z', 'earL'], ['earInR', CB.MIRROR('M140 108 L144 72 L170 94 Z'), 'earR'],
+    ['nose', 'M186 150 H214 L200 166 Z'], ['yarn', CB.C(58, 302, 30)],
+  ], lines: `<ellipse cx="166" cy="132" rx="9" ry="13" fill="${INK}"/><ellipse cx="234" cy="132" rx="9" ry="13" fill="${INK}"/>
+    <path d="M200 166 Q192 182 178 174 M200 166 Q208 182 222 174 M150 156 H112 M150 166 L114 176 M250 156 H288 M250 166 L286 176 M180 340 V320 M220 340 V320 M38 290 Q58 280 80 300 M34 310 Q58 304 82 318" fill="none"/>` },
+  cake: { say: 'cake', parts: [
+    ['wall', SKY], ['table', 'M3 330 H397 V397 H3 Z'],
+    ...[[24, 34], [100, 50], [176, 58], [252, 54], [328, 40]].map(([x, y], i) => ['flag' + i, `M${x} ${y - 4} L${x + 48} ${y + 6} L${x + 20} ${y + 50} Z`]),
+    ['plate', CB.E(200, 336, 156, 22)], ['tier1', CB.R(78, 234, 244, 104, 16)], ['icing1', CB.DRIP(78, 322, 262, 28, 6), 'tier1'],
+    ['tier2', CB.R(118, 160, 164, 80, 14)], ['icing2', CB.DRIP(118, 282, 182, 22, 4), 'tier2'],
+    ...[134, 168, 202, 236].map((x, i) => ['candle' + i, CB.R(x + 4, 104, 22, 58, 6)]),
+    ...[149, 183, 217, 251].map((x, i) => ['flame' + i, `M${x} 64 C${x + 14} 80 ${x + 14} 96 ${x} 98 C${x - 14} 96 ${x - 14} 80 ${x} 64 Z`]),
+  ], lines: '<path d="M3 26 Q200 72 397 26" fill="none"/>' },
+  rainbow: { say: 'rainbow', parts: [
+    ['sky', SKY], ['sun', CB.C(342, 62, 34)],
+    ...['r1', 'r2', 'r3', 'r4', 'r5'].map((id, i) => { const o = 172 - i * 26, n = o - 26; return [id, `M${200 - o} 304 A${o} ${o} 0 0 1 ${200 + o} 304 H${200 + n} A${n} ${n} 0 0 0 ${200 - n} 304 Z`]; }),
+    ['grass', 'M3 330 C120 316 280 316 397 330 V397 H3 Z'],
+    ['cloudL', 'M14 318 C10 288 44 274 62 290 C74 264 116 270 118 300 C140 298 150 328 128 340 H26 C8 338 4 324 14 318 Z'],
+    ['cloudR', CB.MIRROR('M14 318 C10 288 44 274 62 290 C74 264 116 270 118 300 C140 298 150 328 128 340 H26 C8 338 4 324 14 318 Z')],
+  ], lines: '' },
 };
-const PAGE_NAMES = { apple: 'apple', house: 'house', bacon: 'dog', fish: 'fish', flower: 'flower', rainbow: 'rainbow' };
-const pageSvg = (id, fills = {}, cls = '') => `<svg class="cr-page ${cls}" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">${COLOUR_PAGES[id]()}</svg>`.replace(/<(path|circle|ellipse) class="cr-r" data-r="([^"]+)"/g, (m, tag, r) => `<${tag} class="cr-r" data-r="${r}" fill="${fills[r] || '#ffffff'}"`);
+const PAGE_NAMES = Object.fromEntries(Object.entries(COLOUR_PAGES).map(([k, v]) => [k, v.say]));
+const RAINBOW_STOPS = ['#e53935', '#fb8c00', '#fdd835', '#43a047', '#1e88e5', '#8e44ad'];
+let crUid = 0;
+const paintOf = (c, u) => (c === 'rainbow' ? `url(#${u}-rb)` : c);
+/* One picture as SVG, in painting order: each part's colour, its crayon strokes (clipped to the part) and its outline, so a
+   part in front hides the lines of the parts behind it. Details (eyes, smiles) go on top. */
+function pageSvg(id, fills = {}, cls = '', strokes = []) {
+  const pg = COLOUR_PAGES[id] || COLOUR_PAGES.apple, u = 'cb' + ++crUid;
+  const ids = new Set(pg.parts.map((p) => p[0]));
+  const clip = (pid) => `url(#${u}-c-${pid})`;
+  const defs = `<defs><linearGradient id="${u}-rb" x1="0" y1="0" x2="1" y2="1">${RAINBOW_STOPS.map((c, i) => `<stop offset="${i / 5}" stop-color="${c}"/>`).join('')}</linearGradient>
+    <linearGradient id="${u}-rbs" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="400" y2="0">${RAINBOW_STOPS.map((c, i) => `<stop offset="${i / 5}" stop-color="${c}"/>`).join('')}</linearGradient>
+    ${pg.parts.map(([pid, d, inside]) => `<clipPath id="${u}-c-${pid}"${inside && ids.has(inside) ? ` clip-path="${clip(inside)}"` : ''}><path d="${d}"/></clipPath>`).join('')}</defs>`;
+  const strokeSvg = (s) => `<path d="${s[2]}" stroke="${s[1] === 'rainbow' ? `url(#${u}-rbs)` : s[1]}"/>`;
+  const fillsSvg = pg.parts.map(([pid, d, inside]) => {
+    const inner = `<path class="cr-r" data-r="${pid}" d="${d}" fill="${paintOf(fills[pid] || '#ffffff', u)}"/><g class="cr-br" data-r="${pid}" clip-path="${clip(pid)}">${strokes.filter((s) => s[0] === pid).map(strokeSvg).join('')}</g><path class="cr-ln" d="${d}"/>`;
+    return inside && ids.has(inside) ? `<g clip-path="${clip(inside)}">${inner}</g>` : inner;
+  }).join('');
+  return `<svg class="cr-page ${cls}" data-u="${u}" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">${defs}<g class="cr-fills" stroke-linejoin="round" stroke-linecap="round">${fillsSvg}</g>
+    <g class="cr-lines" fill="none" stroke="${INK}" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" pointer-events="none">${pg.lines}</g></svg>`;
+}
+const crSaved = (id) => {
+  const pg = COLOUR_PAGES[id], ids = new Set(pg.parts.map((p) => p[0]));
+  const s = Store.data.colourings[id] || (Store.data.colourings[id] = {});
+  if (!s.fills || typeof s.fills !== 'object') s.fills = {};
+  Object.keys(s.fills).forEach((k) => { if (!ids.has(k)) delete s.fills[k]; }); // parts from older drawings
+  if (!Array.isArray(s.strokes)) s.strokes = []; else s.strokes = s.strokes.filter((x) => Array.isArray(x) && ids.has(x[0]));
+  return s;
+};
+const crGallery = () => (Array.isArray(Store.data.gallery) ? Store.data.gallery : (Store.data.gallery = []));
+const ICON_FRAME = '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="7" width="38" height="34" rx="4" fill="#ffd54f" stroke="currentColor" stroke-width="3.5"/><rect x="11" y="13" width="26" height="22" rx="2" fill="#fff" stroke="currentColor" stroke-width="2.5"/><path d="M13 33 L21 23 L27 29 L30 26 L35 33 Z" fill="#43a047"/><circle cx="30" cy="18" r="3" fill="#e53935"/></svg>';
+const ICON_POT = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 20 L24 8 L38 20 L24 40 Z" fill="#fff" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/><path d="M14 22 L24 13 L34 22 L24 36 Z" fill="var(--pc, #e53935)"/><path d="M38 20 C44 28 44 34 40 36 C36 34 36 28 38 20 Z" fill="var(--pc, #e53935)" stroke="currentColor" stroke-width="2.5"/></svg>';
+const ICON_CRAYON = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M30 6 L42 18 L18 42 L6 42 L6 30 Z" fill="var(--pc, #e53935)" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/><path d="M24 12 L36 24" stroke="currentColor" stroke-width="3"/><path d="M6 30 L18 42" stroke="currentColor" stroke-width="3"/></svg>';
+const ICON_UNDO = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 20 H30 A10 10 0 0 1 30 40 H18" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/><path d="M20 11 L11 20 L20 29" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_TICK = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L39 14" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 SCREENS.colourPick = () => {
   const el = h(`<section class="activity colour-pick" style="--c:${COLOUR_C}"></section>`);
   el.appendChild(topBar({ back: 'games', title: U('colouring'), colour: COLOUR_C }));
-  const stage = h(`<main class="stage"><div class="cp-grid scroll">${Object.keys(COLOUR_PAGES).map((id) => `<button class="cp-page" data-page="${id}" aria-label="${PAGE_NAMES[id]}">${pageSvg(id, (Store.data.colourings[id] || {}).fills)}</button>`).join('')}</div></main>`);
+  const gal = crGallery();
+  const stage = h(`<main class="stage"><div class="cp-grid scroll">
+    ${gal.length ? `<button class="cp-page cp-gallery" aria-label="My pictures"><span class="cp-frame">${pageSvg(gal[0].p, gal[0].f, '', gal[0].s)}</span><span class="cp-gal-ic">${ICON_FRAME}<b>${gal.length}</b></span></button>` : ''}
+    ${Object.keys(COLOUR_PAGES).map((id) => { const s = crSaved(id); return `<button class="cp-page" data-page="${id}" aria-label="${PAGE_NAMES[id]}">${pageSvg(id, s.fills, '', s.strokes)}</button>`; }).join('')}</div></main>`);
   el.appendChild(stage);
   el.appendChild(guide('point', U('pickPage')));
-  $$('.cp-page', stage).forEach((b) => onTap(b, () => go('colouring', { page: b.dataset.page }), { sound: 'open' }));
+  $$('.cp-page[data-page]', stage).forEach((b) => onTap(b, () => go('colouring', { page: b.dataset.page }), { sound: 'open' }));
+  const gb = $('.cp-gallery', stage); if (gb) onTap(gb, () => go('colourGallery'), { sound: 'open' });
   el._enter = () => Audio.say(U('pickPage'));
+  return el;
+};
+
+/* "My pictures": every finished picture in a golden frame; tap one to see it big. */
+SCREENS.colourGallery = () => {
+  const el = h(`<section class="activity colour-gallery" style="--c:${COLOUR_C}"></section>`);
+  el.appendChild(topBar({ back: 'colourPick', title: U('colouring'), colour: COLOUR_C }));
+  const gal = crGallery();
+  const stage = h(`<main class="stage"><div class="cg-grid scroll">${gal.map((g, i) => `<button class="cg-item" data-i="${i}" aria-label="${PAGE_NAMES[g.p] || 'picture'}" style="--tilt:${(i % 3) - 1}deg"><span class="cp-frame">${pageSvg(g.p, g.f, '', g.s)}</span></button>`).join('')}</div></main>`);
+  el.appendChild(stage);
+  el.appendChild(guide('cheer', U('colourDone')));
+  $$('.cg-item', stage).forEach((b) => onTap(b, () => {
+    const g = gal[+b.dataset.i]; if (!g) return;
+    const o = h(`<div class="overlay cg-big" role="dialog"><div class="cg-big-card"><span class="cp-frame">${pageSvg(g.p, g.f, '', g.s)}</span></div></div>`);
+    document.body.appendChild(o); Audio.say([EN(PAGE_NAMES[g.p] || 'apple')]);
+    onTap(o, () => o.remove(), { sound: 'whoosh' });
+  }, { sound: 'open' }));
+  el._enter = () => Audio.say(U('colourDone'));
   return el;
 };
 
 SCREENS.colouring = (params = {}) => {
   const id = COLOUR_PAGES[params.page] ? params.page : 'apple';
-  const saved = Store.data.colourings[id] || (Store.data.colourings[id] = { fills: {} });
+  const pg = COLOUR_PAGES[id], saved = crSaved(id);
   const el = h(`<section class="activity colouring" style="--c:${COLOUR_C}"></section>`);
   el.appendChild(topBar({ back: 'colourPick', title: U('colouring'), colour: COLOUR_C }));
   const stage = h(`<main class="stage cl-stage">
-    <div class="cl-paper">${pageSvg(id, saved.fills)}</div>
-    <div class="cl-side"><div class="cl-paints">${PAINTS.map(([n, c], i) => `<button class="paint ${i === 0 ? 'on' : ''}" data-c="${c}" data-n="${n}" style="--pc:${c}" aria-label="${n}"></button>`).join('')}</div>
-      <button class="big-btn cl-done" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L39 14" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+    <div class="cl-tools">
+      <button class="cl-tool on" data-tool="fill" aria-label="Paint pot">${ICON_POT}</button>
+      <button class="cl-tool" data-tool="brush" aria-label="Crayon">${ICON_CRAYON}</button>
+      <button class="cl-tool cl-undo" aria-label="Undo" disabled>${ICON_UNDO}</button>
+    </div>
+    <div class="cl-paper">${pageSvg(id, saved.fills, 'cl-svg', saved.strokes)}</div>
+    <div class="cl-side"><div class="cl-paints">${PAINTS.map(([n, c], i) => `<button class="paint ${i === 0 ? 'on' : ''} ${c === 'rainbow' ? 'rainbow' : ''}" data-c="${c}" data-n="${n}" style="--pc:${c === 'rainbow' ? '#e53935' : c}" aria-label="${n}"></button>`).join('')}</div>
+      <button class="big-btn cl-done" aria-label="Done">${ICON_TICK}</button></div>
   </main>`);
   el.appendChild(stage);
   el.appendChild(guide('point', U('colourHint')));
-  let colour = PAINTS[0][1], painted = new Set(Object.keys(saved.fills)), finished = false;
-  const regions = $$('.cr-r', stage);
-  $$('.paint', stage).forEach((b) => onTap(b, () => {
-    $$('.paint', stage).forEach((x) => x.classList.remove('on')); b.classList.add('on'); colour = b.dataset.c;
-    Audio.say([EN(b.dataset.n)]);
-  }, { sound: 'pop' }));
-  regions.forEach((r) => r.addEventListener('pointerup', () => {
-    r.setAttribute('fill', colour); saved.fills[r.dataset.r] = colour; painted.add(r.dataset.r); Store.save();
-    Audio.sfx('pop'); r.classList.remove('splash'); void r.getBBox; r.classList.add('splash');
-    const done = $('.cl-done', stage); if (painted.size >= Math.ceil(regions.length * 0.6)) done.classList.add('ready');
-  }));
-  onTap($('.cl-done', stage), () => {
+  const svg = $('.cl-svg', stage), u = svg.dataset.u, NS = 'http://www.w3.org/2000/svg';
+  const parts = pg.parts.map((p) => p[0]);
+  let colour = PAINTS[0][1], tool = 'fill', finished = false, drawing = null, idle = 0, allDone = false;
+  const history = [];
+  const undoBtn = $('.cl-undo', stage), doneBtn = $('.cl-done', stage);
+  const region = (pid) => svg.querySelector(`.cr-r[data-r="${pid}"]`);
+  const brushG = (pid) => svg.querySelector(`.cr-br[data-r="${pid}"]`);
+  const coloured = () => new Set([...Object.keys(saved.fills), ...saved.strokes.map((s) => s[0])]);
+  const setPc = () => stage.style.setProperty('--pc', colour === 'rainbow' ? '#e53935' : colour);
+  function refresh() {
+    undoBtn.disabled = !history.length;
+    const n = coloured().size;
+    doneBtn.classList.toggle('ready', n >= Math.min(3, parts.length));
+    const full = parts.every((p) => saved.fills[p]);
+    if (full && !allDone) { allDone = true; Audio.sfx('sparkle'); setGuide('cheer', U('colourDone')); doneBtn.classList.add('ready'); }
+    if (!full) allDone = false;
+  }
+  const save = () => { Store.save(); refresh(); };
+  const toSvg = (e) => { const m = svg.getScreenCTM(); if (!m) return { x: 0, y: 0 }; const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse()); return { x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10 }; };
+  function fill(pid, at) {
+    const r = region(pid); if (!r) return;
+    const prev = saved.fills[pid] || null;
+    if (prev === colour) { r.classList.remove('wobble'); void r.getBBox(); r.classList.add('wobble'); Audio.sfx('boing'); return; }
+    history.push({ t: 'fill', pid, prev }); saved.fills[pid] = colour; save();
+    Audio.sfx('pop');
+    // the colour spreads out from the finger, then the part takes it
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', at.x); c.setAttribute('cy', at.y); c.setAttribute('r', 0); c.setAttribute('fill', paintOf(colour, u));
+    c.setAttribute('clip-path', `url(#${u}-c-${pid})`); c.setAttribute('pointer-events', 'none');
+    brushG(pid).after(c);
+    const t0 = performance.now(), want = colour;
+    const step = (t) => { const k = Math.max(0, Math.min(1, (t - t0) / 360)); c.setAttribute('r', 420 * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) requestAnimationFrame(step); else { r.setAttribute('fill', paintOf(saved.fills[pid] || want, u)); c.remove(); } };
+    requestAnimationFrame(step);
+  }
+  function strokeD(pts) { if (pts.length === 1) return `M${pts[0].x} ${pts[0].y} l0.1 0`; let d = `M${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1]; d += ` Q${a.x} ${a.y} ${Math.round((a.x + b.x) * 5) / 10} ${Math.round((a.y + b.y) * 5) / 10}`; }
+    const z = pts[pts.length - 1]; return d + ` L${z.x} ${z.y}`; }
+  svg.addEventListener('pointerdown', (e) => {
     if (finished) return;
-    if (painted.size < Math.min(3, regions.length)) { setGuide('wave', U('colourHint'), 'wiggle'); Audio.say(U('colourHint')); return; }
-    finished = true; saved.done = (saved.done || 0) + 1; Store.save(); Store.played('games:colouring');
+    const r = e.target.closest && e.target.closest('.cr-r'); if (!r) return;
+    e.preventDefault(); idle = 0; $$('.cr-r.hint', svg).forEach((x) => x.classList.remove('hint'));
+    const pid = r.dataset.r, at = toSvg(e);
+    if (tool === 'fill') { fill(pid, at); return; }
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('stroke', colour === 'rainbow' ? `url(#${u}-rbs)` : colour);
+    brushG(pid).appendChild(path);
+    drawing = { pid, path, pts: [at] }; path.setAttribute('d', strokeD(drawing.pts));
+    try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+    Audio.sfx('tap');
+  });
+  svg.addEventListener('pointermove', (e) => {
+    if (!drawing) return;
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    (evs.length ? evs : [e]).forEach((ev) => { const p = toSvg(ev), l = drawing.pts[drawing.pts.length - 1]; if (Math.hypot(p.x - l.x, p.y - l.y) > 2.5) drawing.pts.push(p); });
+    drawing.path.setAttribute('d', strokeD(drawing.pts));
+  });
+  const endStroke = () => {
+    if (!drawing) return;
+    const d = strokeD(drawing.pts);
+    saved.strokes.push([drawing.pid, colour, d]); history.push({ t: 'stroke', el: drawing.path });
+    if (saved.strokes.length > 400) saved.strokes.shift();
+    drawing = null; save();
+  };
+  svg.addEventListener('pointerup', endStroke); svg.addEventListener('pointercancel', endStroke); svg.addEventListener('lostpointercapture', endStroke);
+  $$('.paint', stage).forEach((b) => onTap(b, () => {
+    $$('.paint', stage).forEach((x) => x.classList.remove('on')); b.classList.add('on'); colour = b.dataset.c; setPc();
+    if (b.dataset.n === 'rainbow') Audio.sfx('sparkle'); else Audio.say([EN(b.dataset.n)]);
+  }, { sound: 'pop' }));
+  $$('.cl-tool[data-tool]', stage).forEach((b) => onTap(b, () => {
+    $$('.cl-tool[data-tool]', stage).forEach((x) => x.classList.remove('on')); b.classList.add('on'); tool = b.dataset.tool;
+    stage.classList.toggle('brush-mode', tool === 'brush');
+  }, { sound: 'pop' }));
+  onTap(undoBtn, () => {
+    const a = history.pop(); if (!a) return;
+    if (a.t === 'fill') { if (a.prev) saved.fills[a.pid] = a.prev; else delete saved.fills[a.pid]; region(a.pid).setAttribute('fill', paintOf(a.prev || '#ffffff', u)); }
+    else { const i = saved.strokes.length - 1; if (i >= 0) saved.strokes.splice(i, 1); a.el.remove(); }
+    save();
+  }, { sound: 'whoosh' });
+  // after a quiet while, a part that is still white glows softly, as a hint where to tap
+  const hintT = setInterval(() => {
+    if (!svg.isConnected) { clearInterval(hintT); return; }
+    if (finished || drawing || ++idle < 8) return; idle = 0;
+    const left = parts.filter((p) => !saved.fills[p] && !saved.strokes.some((s) => s[0] === p));
+    if (!left.length) return;
+    const r = region(pick(left)); r.classList.remove('hint'); void r.getBBox(); r.classList.add('hint');
+  }, 1000);
+  onTap(doneBtn, () => {
+    if (finished) return;
+    if (coloured().size < Math.min(3, parts.length)) { setGuide('wave', U('colourHint'), 'wiggle'); Audio.say(U('colourHint')); return; }
+    finished = true; clearInterval(hintT);
+    const gal = crGallery(); gal.unshift({ p: id, f: { ...saved.fills }, s: saved.strokes.slice(), t: Date.now() }); if (gal.length > 30) gal.length = 30;
+    saved.done = (saved.done || 0) + 1; saved.fills = {}; saved.strokes = []; // the picture is in "My pictures"; next time the page is fresh
+    Store.save(); Store.played('games:colouring');
     Skill.record('colouring', { ok: true, item: id });
+    $('.cl-paper', stage).classList.add('framed');
     celebrate({ text: U('colourDone'), big: true }); setGuide('cheer', U('colourDone'));
-    const sp = Audio.say([U('colourDone'), EN(PAGE_NAMES[id] === 'dog' ? 'dog' : PAGE_NAMES[id])]);
-    afterSpeech(sp, 2000, () => roundEnd({ stars: 3, onAgain: () => go('colourPick'), onHome: () => go('games') }));
+    const sp = Audio.say([U('colourDone'), EN(PAGE_NAMES[id])]);
+    afterSpeech(sp, 2200, () => roundEnd({ stars: 3, onAgain: () => go('colourPick'), onHome: () => go('games') }));
   }, { sound: 'sparkle' });
+  setPc(); refresh();
   el._enter = () => Audio.say(U('colourHint'));
   return el;
 };
@@ -4482,7 +4922,7 @@ const STORY_IDS = Object.keys(STORIES);
 const CHEST_SVG = '<svg viewBox="0 0 100 80" aria-hidden="true"><path d="M10 34 H90 V72 H10 Z" fill="#b5773b" stroke="#4a2f27" stroke-width="4" stroke-linejoin="round"/><path d="M10 34 C10 10 90 10 90 34 Z" fill="#d7a26b" stroke="#4a2f27" stroke-width="4" stroke-linejoin="round"/><path d="M10 46 H90" stroke="#4a2f27" stroke-width="4"/><rect x="42" y="38" width="16" height="16" rx="3" fill="#ffd54f" stroke="#4a2f27" stroke-width="3"/></svg>';
 const SAND_SVG = '<svg viewBox="0 0 120 70" aria-hidden="true"><path d="M4 66 C14 20 50 8 60 8 C70 8 106 20 116 66 Z" fill="#f3d38b" stroke="#4a2f27" stroke-width="4" stroke-linejoin="round"/><circle cx="40" cy="40" r="3" fill="#c9a25b"/><circle cx="72" cy="30" r="3" fill="#c9a25b"/><circle cx="84" cy="50" r="3" fill="#c9a25b"/></svg>';
 const MAPSCROLL_SVG = '<svg viewBox="0 0 120 90" aria-hidden="true"><path d="M10 10 H110 V80 H10 Z" fill="#fff3d6" stroke="#4a2f27" stroke-width="4" stroke-linejoin="round"/><path d="M24 64 C40 40 60 70 80 40" fill="none" stroke="#e53935" stroke-width="4" stroke-dasharray="6 6"/><path d="M84 30 L96 42 M96 30 L84 42" stroke="#e53935" stroke-width="5" stroke-linecap="round"/></svg>';
-const castImg = (who, pose) => (who === 'dog' ? `<img src="assets/character/dog-${pose}.png" alt="" draggable="false">` : `<img src="assets/character/${who}-${pose}.png" alt="" draggable="false">`);
+const castImg = (who, pose) => (who === 'dog' ? `<img src="assets/character/dog-${pose}.webp" alt="" draggable="false">` : `<img src="assets/character/${who}-${pose}.webp" alt="" draggable="false">`);
 
 function storyBg(landId) {
   const L = LANDS.find((x) => x.id === landId) || LANDS[0], [x0, y0, x1, y1] = L.land, w = x1 - x0, hh = y1 - y0;
@@ -4516,7 +4956,7 @@ SCREENS.story = (params = {}) => {
   const sayNow = (parts) => { speech = parts; return Audio.say(parts); };
   onTap($('.st-line', stage), () => Audio.say(speech), { sound: null });
   const drawCast = (c, { hideDog = false } = {}) => {
-    const dogWith = (A) => `<span class="dog-fig st-dogfig"><img src="assets/character/dog-front.png" alt="" draggable="false"><span class="dog-acc acc-${A.id}" style="--x:${A.x}%;--y:${A.y}%;--w:${A.w}%">${Rewards.accSvg(A.id)}</span></span>`;
+    const dogWith = (A) => `<span class="dog-fig st-dogfig"><img src="assets/character/dog-front.webp" alt="" draggable="false"><span class="dog-acc acc-${A.id}" style="--x:${A.x}%;--y:${A.y}%;--w:${A.w}%">${Rewards.accSvg(A.id)}</span></span>`;
     cast.innerHTML = Object.entries(c).filter(([w]) => !(w === 'dog' && hideDog)).map(([w, pose]) => `<span class="st-who st-${w}" data-who="${w}">${w === 'dog' && dogAcc ? dogWith(dogAcc) : w === 'dog' && pose === 'front' ? Rewards.dogFigure('st-dogfig') : castImg(w, pose)}</span>`).join('');
   };
   const hop = (sel) => { const e = $(sel, cast); if (e) { e.classList.remove('hop'); void e.offsetWidth; e.classList.add('hop'); } };
